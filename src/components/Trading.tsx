@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeftRight, Search, Check, X, Clock, ChevronDown, ChevronUp, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ArrowLeftRight, Search, Check, X, Clock, ChevronDown, ChevronUp, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
 import { apiCardToTradingCard } from '../types/api';
 import type { TradeOffer, OwnedCard } from '../types/api';
