@@ -612,22 +612,22 @@ export function Trading() {
                       {/* Cards grid */}
                       <div className="grid grid-cols-2 gap-3 min-h-[400px]">
                         {paginatedMyCards.map((card) => (
-                          <button
-                            key={card.id}
-                            onClick={() => toggleCardSelection(card.id, 'offered')}
-                            className={`relative rounded-2xl transition-all ${
-                              selectedOffered.has(card.id)
-                                ? 'ring-2 ring-offset-2 ring-offset-transparent ring-emerald-500'
-                                : 'hover:ring-2 hover:ring-white/20'
-                            }`}
-                          >
-                            <TradingCard card={card} />
-                            {selectedOffered.has(card.id) && (
-                              <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center z-10">
-                                <Check className="w-4 h-4 text-white" />
-                              </div>
-                            )}
-                          </button>
+                          <div key={card.id} className="relative">
+                            <button
+                              onClick={() => toggleCardSelection(card.id, 'offered')}
+                              className="relative"
+                            >
+                              <TradingCard card={card} />
+                              {selectedOffered.has(card.id) && (
+                                <>
+                                  <div className="absolute inset-0 rounded-2xl ring-2 ring-emerald-500 pointer-events-none" />
+                                  <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center z-10">
+                                    <Check className="w-4 h-4 text-white" />
+                                  </div>
+                                </>
+                              )}
+                            </button>
+                          </div>
                         ))}
                         {paginatedMyCards.length === 0 && (
                           <div className="col-span-2 flex items-center justify-center text-white/40 text-sm">
@@ -732,22 +732,22 @@ export function Trading() {
                           </div>
                         ) : (
                           paginatedTheirCards.map((card) => (
-                            <button
-                              key={card.id}
-                              onClick={() => toggleCardSelection(card.id, 'requested')}
-                              className={`relative rounded-2xl transition-all ${
-                                selectedRequested.has(card.id)
-                                  ? 'ring-2 ring-offset-2 ring-offset-transparent ring-fuchsia-500'
-                                  : 'hover:ring-2 hover:ring-white/20'
-                              }`}
-                            >
-                              <TradingCard card={card} />
-                              {selectedRequested.has(card.id) && (
-                                <div className="absolute top-2 right-2 w-6 h-6 bg-fuchsia-500 rounded-full flex items-center justify-center z-10">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                              )}
-                            </button>
+                            <div key={card.id} className="relative">
+                              <button
+                                onClick={() => toggleCardSelection(card.id, 'requested')}
+                                className="relative"
+                              >
+                                <TradingCard card={card} />
+                                {selectedRequested.has(card.id) && (
+                                  <>
+                                    <div className="absolute inset-0 rounded-2xl ring-2 ring-fuchsia-500 pointer-events-none" />
+                                    <div className="absolute top-2 right-2 w-6 h-6 bg-fuchsia-500 rounded-full flex items-center justify-center z-10">
+                                      <Check className="w-4 h-4 text-white" />
+                                    </div>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           ))
                         )}
                       </div>
