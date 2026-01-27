@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Library, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Library, Filter, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
 import { TradingCard } from './TradingCard';
 
@@ -45,6 +45,7 @@ export function Collection({ cards }: CollectionProps) {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterRarity, setFilterRarity] = useState<FilterRarity>('all');
   const [filterTier, setFilterTier] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
@@ -54,7 +55,8 @@ export function Collection({ cards }: CollectionProps) {
 
   const filteredCards = cards
     .filter((card) => filterRarity === 'all' || card.rarity === filterRarity)
-    .filter((card) => filterTier === 'all' || card.player.tier?.name === filterTier);
+    .filter((card) => filterTier === 'all' || card.player.tier?.name === filterTier)
+    .filter((card) => searchQuery === '' || card.player.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const sortedCards = useMemo(() => [...filteredCards].sort((a, b) => {
     switch (sortBy) {
@@ -79,7 +81,7 @@ export function Collection({ cards }: CollectionProps) {
   const paginatedCards = sortedCards.slice((validPage - 1) * perPage, validPage * perPage);
 
   // Reset to page 1 when filters change
-  const handleFilterChange = (setter: (val: any) => void, value: any) => {
+  const handleFilterChange = <T,>(setter: (val: T) => void, value: T) => {
     setter(value);
     setCurrentPage(1);
   };
@@ -113,8 +115,19 @@ export function Collection({ cards }: CollectionProps) {
         </div>
       </div>
 
-      {/* Filters and sorting */}
+      {/* Search and Filters */}
       <div className="flex flex-wrap items-center gap-4 bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            placeholder="Search player..."
+            className="pl-9 pr-3 py-1.5 w-48 bg-white/[0.05] border border-white/[0.08] text-white rounded-lg text-sm font-medium placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+          />
+        </div>
+
         <Filter className="w-5 h-5 text-white/40" />
 
         <div className="flex items-center gap-2">
@@ -183,12 +196,13 @@ export function Collection({ cards }: CollectionProps) {
 
         <div className="flex-1" />
 
-        {(filterRarity !== 'all' || filterTier !== 'all' || sortBy !== 'newest') && (
+        {(filterRarity !== 'all' || filterTier !== 'all' || sortBy !== 'newest' || searchQuery !== '') && (
           <button
             onClick={() => {
               setFilterRarity('all');
               setFilterTier('all');
               setSortBy('newest');
+              setSearchQuery('');
               setCurrentPage(1);
             }}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors"

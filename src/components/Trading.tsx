@@ -48,12 +48,14 @@ export function Trading() {
   const [mySort, setMySort] = useState<SortOption>('newest');
   const [myRarity, setMyRarity] = useState<FilterRarity>('all');
   const [myTier, setMyTier] = useState<string>('all');
+  const [mySearch, setMySearch] = useState('');
   const [myPage, setMyPage] = useState(1);
 
   // Filter and pagination state for their cards
   const [theirSort, setTheirSort] = useState<SortOption>('newest');
   const [theirRarity, setTheirRarity] = useState<FilterRarity>('all');
   const [theirTier, setTheirTier] = useState<string>('all');
+  const [theirSearch, setTheirSearch] = useState('');
   const [theirPage, setTheirPage] = useState(1);
 
   const CARDS_PER_PAGE = 8;
@@ -100,8 +102,8 @@ export function Trading() {
     try {
       const { trades: data } = await api.getTrades('all');
       setTrades(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load trades');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load trades');
     } finally {
       setLoading(false);
     }
@@ -130,8 +132,8 @@ export function Trading() {
     try {
       await api.acceptTrade(tradeId);
       await fetchTrades();
-    } catch (err: any) {
-      setError(err.message || 'Failed to accept trade');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to accept trade');
     } finally {
       setActionLoading(null);
     }
@@ -142,8 +144,8 @@ export function Trading() {
     try {
       await api.rejectTrade(tradeId);
       await fetchTrades();
-    } catch (err: any) {
-      setError(err.message || 'Failed to reject trade');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to reject trade');
     } finally {
       setActionLoading(null);
     }
@@ -154,8 +156,8 @@ export function Trading() {
     try {
       await api.cancelTrade(tradeId);
       await fetchTrades();
-    } catch (err: any) {
-      setError(err.message || 'Failed to cancel trade');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel trade');
     } finally {
       setActionLoading(null);
     }
@@ -183,8 +185,8 @@ export function Trading() {
       setSelectedRequested(new Set());
       setActiveTab('outgoing');
       await fetchTrades();
-    } catch (err: any) {
-      setCreateError(err.message || 'Failed to create trade');
+    } catch (err: unknown) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create trade');
     } finally {
       setCreateLoading(false);
     }
@@ -230,9 +232,10 @@ export function Trading() {
 
   // Filter and sort my cards
   const filteredMyCards = useMemo(() => {
-    let cards = myCards
+    const cards = myCards
       .filter((card) => myRarity === 'all' || card.rarity === myRarity)
-      .filter((card) => myTier === 'all' || card.player.tier?.name === myTier);
+      .filter((card) => myTier === 'all' || card.player.tier?.name === myTier)
+      .filter((card) => mySearch === '' || card.player.name.toLowerCase().includes(mySearch.toLowerCase()));
 
     return cards.sort((a, b) => {
       switch (mySort) {
@@ -244,13 +247,14 @@ export function Trading() {
         default: return 0;
       }
     });
-  }, [myCards, myRarity, myTier, mySort]);
+  }, [myCards, myRarity, myTier, mySort, mySearch]);
 
   // Filter and sort their cards
   const filteredTheirCards = useMemo(() => {
-    let cards = theirCards
+    const cards = theirCards
       .filter((card) => theirRarity === 'all' || card.rarity === theirRarity)
-      .filter((card) => theirTier === 'all' || card.player.tier?.name === theirTier);
+      .filter((card) => theirTier === 'all' || card.player.tier?.name === theirTier)
+      .filter((card) => theirSearch === '' || card.player.name.toLowerCase().includes(theirSearch.toLowerCase()));
 
     return cards.sort((a, b) => {
       switch (theirSort) {
@@ -262,7 +266,7 @@ export function Trading() {
         default: return 0;
       }
     });
-  }, [theirCards, theirRarity, theirTier, theirSort]);
+  }, [theirCards, theirRarity, theirTier, theirSort, theirSearch]);
 
   // Paginate
   const myTotalPages = Math.ceil(filteredMyCards.length / CARDS_PER_PAGE);
@@ -556,6 +560,18 @@ export function Trading() {
                         </span>
                       </div>
 
+                      {/* Search */}
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                        <input
+                          type="text"
+                          value={mySearch}
+                          onChange={(e) => { setMySearch(e.target.value); setMyPage(1); }}
+                          placeholder="Search player..."
+                          className="w-full pl-8 pr-3 py-1.5 bg-white/[0.05] border border-white/[0.08] text-white rounded-lg text-xs font-medium placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                        />
+                      </div>
+
                       {/* Filters */}
                       <div className="flex flex-wrap gap-2">
                         <select
@@ -653,6 +669,18 @@ export function Trading() {
                         <span className="text-fuchsia-400 text-sm font-medium">
                           {selectedRequested.size} selected
                         </span>
+                      </div>
+
+                      {/* Search */}
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                        <input
+                          type="text"
+                          value={theirSearch}
+                          onChange={(e) => { setTheirSearch(e.target.value); setTheirPage(1); }}
+                          placeholder="Search player..."
+                          className="w-full pl-8 pr-3 py-1.5 bg-white/[0.05] border border-white/[0.08] text-white rounded-lg text-xs font-medium placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                        />
                       </div>
 
                       {/* Filters */}
