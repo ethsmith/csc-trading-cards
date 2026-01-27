@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Gift } from 'lucide-react';
+import { Sparkles, Gift, Zap } from 'lucide-react';
 import type { TradingCard as TradingCardType, PlayerWithStats } from '../types/player';
 import { api } from '../api/client';
 import { apiCardToTradingCard } from '../types/api';
@@ -30,6 +30,7 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   const [error, setError] = useState<string | null>(null);
   const [packBalance, setPackBalance] = useState<number>(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
+  const [quickOpen, setQuickOpen] = useState(false);
 
   useEffect(() => {
     api.getPackBalance()
@@ -72,6 +73,9 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
       const newCards = result.cards.map(apiCardToTradingCard);
       setPackBalance(result.packBalance);
       
+      // Cards are already saved server-side, update local collection immediately
+      onCardsObtained(newCards);
+      
       // Phase 5: Revealing cards (after animation completes)
       setTimeout(() => {
         setPhase('revealing');
@@ -79,8 +83,8 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
         revealCardsSequentially(newCards);
         setIsLoading(false);
       }, 2600);
-    } catch (err: any) {
-      setError(err.message || 'Failed to open pack');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to open pack');
       setPhase('idle');
       setIsLoading(false);
     }
@@ -95,10 +99,37 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   };
 
   const handleCollectCards = () => {
-    onCardsObtained(revealedCards);
+    // Cards already added to collection when pack was opened
     setRevealedCards([]);
     setCurrentRevealIndex(-1);
     setPhase('idle');
+  };
+
+  const handleQuickOpen = async () => {
+    if (players.length === 0 || phase !== 'idle' || isLoading || packBalance <= 0) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await api.openPack(5);
+      const newCards = result.cards.map(apiCardToTradingCard);
+      setPackBalance(result.packBalance);
+      
+      // Cards are already saved server-side, update local collection immediately
+      onCardsObtained(newCards);
+      
+      // Skip animation, go straight to revealing
+      setPhase('revealing');
+      setRevealedCards(newCards);
+      // Show all cards at once
+      setCurrentRevealIndex(newCards.length - 1);
+      setIsLoading(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to open pack');
+      setPhase('idle');
+      setIsLoading(false);
+    }
   };
 
   const isOpening = phase !== 'idle' && phase !== 'revealing';
@@ -305,9 +336,22 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
         </span>
       </div>
 
+      {/* Quick Open Toggle */}
+      <button
+        onClick={() => setQuickOpen(!quickOpen)}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          quickOpen
+            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            : 'bg-white/[0.03] text-white/50 border border-white/[0.06] hover:text-white/70'
+        }`}
+      >
+        <Zap className="w-4 h-4" />
+        Quick Open {quickOpen ? 'ON' : 'OFF'}
+      </button>
+
       {/* Clickable Pack */}
       <button
-        onClick={handleOpenPack}
+        onClick={quickOpen ? handleQuickOpen : handleOpenPack}
         disabled={!canOpenPack}
         className="group relative focus:outline-none disabled:cursor-not-allowed"
       >
