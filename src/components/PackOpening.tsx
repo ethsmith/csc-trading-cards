@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles, Gift } from 'lucide-react';
 import type { TradingCard as TradingCardType, PlayerWithStats } from '../types/player';
 import { api } from '../api/client';
 import { apiCardToTradingCard } from '../types/api';
@@ -28,9 +28,23 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   const [currentRevealIndex, setCurrentRevealIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [packBalance, setPackBalance] = useState<number>(0);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPackBalance()
+      .then(({ packBalance }) => {
+        setPackBalance(packBalance);
+        setBalanceLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch pack balance:', err);
+        setBalanceLoading(false);
+      });
+  }, []);
 
   const handleOpenPack = async () => {
-    if (players.length === 0 || phase !== 'idle' || isLoading) return;
+    if (players.length === 0 || phase !== 'idle' || isLoading || packBalance <= 0) return;
 
     setIsLoading(true);
     setError(null);
@@ -56,6 +70,7 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
     try {
       const result = await api.openPack(5);
       const newCards = result.cards.map(apiCardToTradingCard);
+      setPackBalance(result.packBalance);
       
       // Phase 5: Revealing cards (after animation completes)
       setTimeout(() => {
@@ -278,12 +293,22 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   }
 
   // Idle state - show pack to click
+  const canOpenPack = !isOpening && players.length > 0 && packBalance > 0 && !balanceLoading;
+
   return (
     <div className="flex flex-col items-center gap-10">
+      {/* Pack Balance Display */}
+      <div className="flex items-center gap-3 px-6 py-3 bg-white/[0.03] rounded-xl border border-white/[0.06]">
+        <Gift className="w-5 h-5 text-fuchsia-400" />
+        <span className="text-white/70 font-medium">
+          {balanceLoading ? 'Loading...' : `${packBalance} pack${packBalance !== 1 ? 's' : ''} available`}
+        </span>
+      </div>
+
       {/* Clickable Pack */}
       <button
         onClick={handleOpenPack}
-        disabled={isOpening || players.length === 0}
+        disabled={!canOpenPack}
         className="group relative focus:outline-none disabled:cursor-not-allowed"
       >
         {/* Pack glow on hover */}
@@ -327,6 +352,13 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
 
       {players.length === 0 && (
         <p className="text-white/40 text-sm font-medium">Loading players...</p>
+      )}
+
+      {!balanceLoading && packBalance === 0 && (
+        <div className="text-center space-y-2">
+          <p className="text-white/50 font-medium">No packs available</p>
+          <p className="text-white/30 text-sm">Redeem a code to get packs!</p>
+        </div>
       )}
 
       {error && (

@@ -1,21 +1,18 @@
 import { useState } from 'react';
-import { Gift, Loader2, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { Gift, Loader2, CheckCircle, AlertCircle, Package } from 'lucide-react';
 import { api } from '../api/client';
-import { apiCardToTradingCard } from '../types/api';
-import type { TradingCard as TradingCardType } from '../types/player';
-import { TradingCard } from './TradingCard';
 
 interface RedeemCodeProps {
-  onCardsObtained: (cards: TradingCardType[]) => void;
+  onCardsObtained?: () => void;
 }
 
 export function RedeemCode({ onCardsObtained }: RedeemCodeProps) {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [redeemedCards, setRedeemedCards] = useState<TradingCardType[]>([]);
-  const [showCards, setShowCards] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [packsAdded, setPacksAdded] = useState(0);
+  const [newBalance, setNewBalance] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,14 +20,15 @@ export function RedeemCode({ onCardsObtained }: RedeemCodeProps) {
 
     setLoading(true);
     setError(null);
-    setSuccess(false);
+    setSuccessMessage(null);
 
     try {
       const result = await api.redeemCode(code.trim());
-      const cards = result.allCards.map(apiCardToTradingCard);
-      setRedeemedCards(cards);
-      setSuccess(true);
+      setPacksAdded(result.packsAdded);
+      setNewBalance(result.packBalance);
+      setSuccessMessage(result.message);
       setCode('');
+      onCardsObtained?.();
     } catch (err: any) {
       setError(err.message || 'Failed to redeem code');
     } finally {
@@ -38,43 +36,13 @@ export function RedeemCode({ onCardsObtained }: RedeemCodeProps) {
     }
   };
 
-  const handleCollectCards = () => {
-    onCardsObtained(redeemedCards);
-    setRedeemedCards([]);
-    setSuccess(false);
-    setShowCards(false);
+  const handleRedeemAnother = () => {
+    setSuccessMessage(null);
+    setPacksAdded(0);
+    setNewBalance(0);
   };
 
-  if (success && redeemedCards.length > 0) {
-    if (showCards) {
-      return (
-        <div className="flex flex-col items-center gap-8 py-8">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
-            <h2 className="text-3xl font-bold text-white tracking-tight">Code Redeemed!</h2>
-            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
-          </div>
-
-          <p className="text-white/60">You received {redeemedCards.length} cards!</p>
-
-          <div className="flex flex-wrap justify-center gap-6 max-w-6xl">
-            {redeemedCards.map((card) => (
-              <TradingCard key={card.id} card={card} />
-            ))}
-          </div>
-
-          <button
-            onClick={handleCollectCards}
-            className="mt-6 px-10 py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-lg rounded-xl
-              hover:from-emerald-400 hover:to-green-400 transition-all duration-200 transform hover:scale-[1.02]
-              shadow-xl shadow-emerald-500/25 border border-white/10"
-          >
-            Add to Collection
-          </button>
-        </div>
-      );
-    }
-
+  if (successMessage) {
     return (
       <div className="flex flex-col items-center gap-8 py-16">
         <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -82,21 +50,21 @@ export function RedeemCode({ onCardsObtained }: RedeemCodeProps) {
         </div>
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white mb-2">Code Redeemed!</h2>
-          <p className="text-white/60 text-lg">You received {redeemedCards.length} cards</p>
+          <p className="text-white/60 text-lg">+{packsAdded} pack{packsAdded !== 1 ? 's' : ''} added</p>
+        </div>
+        <div className="flex items-center gap-3 px-6 py-3 bg-white/[0.03] rounded-xl border border-white/[0.06]">
+          <Package className="w-5 h-5 text-fuchsia-400" />
+          <span className="text-white/70 font-medium">
+            You now have {newBalance} pack{newBalance !== 1 ? 's' : ''} to open
+          </span>
         </div>
         <div className="flex gap-4">
           <button
-            onClick={() => setShowCards(true)}
+            onClick={handleRedeemAnother}
             className="px-8 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold rounded-xl
               hover:from-violet-500 hover:to-fuchsia-500 transition-all duration-200 shadow-lg shadow-violet-500/25"
           >
-            View Cards
-          </button>
-          <button
-            onClick={handleCollectCards}
-            className="px-8 py-3 bg-white/10 hover:bg-white/15 text-white font-medium rounded-xl transition-colors"
-          >
-            Add to Collection
+            Redeem Another
           </button>
         </div>
       </div>

@@ -79,9 +79,14 @@ class ApiClient {
     return this.request('/collection/stats');
   }
 
+  async getPackBalance(): Promise<{ packBalance: number }> {
+    return this.request('/packs/balance');
+  }
+
   async openPack(packSize: number = 5): Promise<{
     cards: any[];
     newSnapshots: number;
+    packBalance: number;
     message: string;
   }> {
     return this.request('/packs/open', {
@@ -92,11 +97,8 @@ class ApiClient {
 
   async redeemCode(code: string): Promise<{
     message: string;
-    packCount: number;
-    cardsPerPack: number;
-    totalCards: number;
-    packs: any[][];
-    allCards: any[];
+    packsAdded: number;
+    packBalance: number;
   }> {
     return this.request('/codes/redeem', {
       method: 'POST',
