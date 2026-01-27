@@ -42,44 +42,52 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-black/30 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              CSC Trading Cards
-            </h1>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <span className="text-white font-black text-sm">TC</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white tracking-tight">
+                  CSC Trading Cards
+                </h1>
+                <p className="text-xs text-white/40 font-medium">Collect • Trade • Compete</p>
+              </div>
+            </div>
 
             {/* Tab navigation */}
-            <nav className="flex gap-2">
+            <nav className="flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
               <button
                 onClick={() => setActiveTab('packs')}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
                   ${activeTab === 'packs'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25'
+                    : 'text-white/50 hover:text-white hover:bg-white/[0.06]'
                   }
                 `}
               >
-                <Package className="w-5 h-5" />
+                <Package className="w-4 h-4" />
                 Open Packs
               </button>
               <button
                 onClick={() => setActiveTab('collection')}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
                   ${activeTab === 'collection'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25'
+                    : 'text-white/50 hover:text-white hover:bg-white/[0.06]'
                   }
                 `}
               >
-                <Library className="w-5 h-5" />
+                <Library className="w-4 h-4" />
                 Collection
                 {collection.length > 0 && (
-                  <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
                     {collection.length}
                   </span>
                 )}
@@ -87,14 +95,14 @@ function App() {
               <button
                 onClick={() => setActiveTab('examples')}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
                   ${activeTab === 'examples'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25'
+                    : 'text-white/50 hover:text-white hover:bg-white/[0.06]'
                   }
                 `}
               >
-                <Eye className="w-5 h-5" />
+                <Eye className="w-4 h-4" />
                 Examples
               </button>
             </nav>
@@ -103,26 +111,31 @@ function App() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
-            <p className="text-gray-400">Loading CSC players...</p>
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-xl animate-pulse" />
+              <Loader2 className="relative w-12 h-12 text-violet-400 animate-spin" />
+            </div>
+            <p className="mt-6 text-white/50 font-medium">Loading CSC players...</p>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <p className="text-red-400 text-lg">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Retry
-            </button>
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-8 text-center max-w-md">
+              <p className="text-red-400 text-lg font-medium">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 px-6 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-xl font-medium transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         ) : (
           <>
             {activeTab === 'packs' && (
-              <div className="flex flex-col items-center py-12">
+              <div className="flex flex-col items-center py-16">
                 <PackOpening players={players} onCardsObtained={handleCardsObtained} />
               </div>
             )}
@@ -139,9 +152,9 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-black/30 border-t border-white/10 py-4 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          <p>Player data from CSC (CS Confederation)</p>
+      <footer className="bg-black/40 border-t border-white/[0.04] py-5 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-white/30 text-sm font-medium">Player data from CSC (CS Confederation)</p>
         </div>
       </footer>
     </div>
