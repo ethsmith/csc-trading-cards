@@ -19,7 +19,7 @@ interface PackOpeningProps {
   onCardsObtained: (cards: TradingCardType[]) => void;
 }
 
-type OpeningPhase = 'idle' | 'shaking' | 'tearing' | 'exploding' | 'revealing';
+type OpeningPhase = 'idle' | 'shaking' | 'tearing' | 'lifting' | 'exploding' | 'revealing';
 
 export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   const [phase, setPhase] = useState<OpeningPhase>('idle');
@@ -39,17 +39,22 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
       setPhase('tearing');
     }, 600);
     
-    // Phase 3: Exploding
+    // Phase 3: Lifting (pack top lifts, cards peek out)
     setTimeout(() => {
-      setPhase('exploding');
+      setPhase('lifting');
     }, 1200);
     
-    // Phase 4: Revealing cards
+    // Phase 4: Exploding
+    setTimeout(() => {
+      setPhase('exploding');
+    }, 2000);
+    
+    // Phase 5: Revealing cards
     setTimeout(() => {
       setPhase('revealing');
       setRevealedCards(newCards);
       revealCardsSequentially(newCards);
-    }, 1800);
+    }, 2600);
   };
 
   const revealCardsSequentially = (cards: TradingCardType[]) => {
@@ -70,7 +75,7 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   const isOpening = phase !== 'idle' && phase !== 'revealing';
 
   // Pack opening animation phase
-  if (phase === 'shaking' || phase === 'tearing' || phase === 'exploding') {
+  if (phase === 'shaking' || phase === 'tearing' || phase === 'lifting' || phase === 'exploding') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] relative">
         {/* Particle effects during explosion */}
@@ -104,59 +109,113 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
         {/* The Pack */}
         <div
           className={`
-            relative w-64 h-80 rounded-2xl cursor-pointer
+            relative w-64 h-80 cursor-pointer
             transition-all duration-300
             ${phase === 'shaking' ? 'animate-[packShake_0.1s_ease-in-out_infinite]' : ''}
-            ${phase === 'tearing' ? 'animate-[packTear_0.6s_ease-in-out_forwards]' : ''}
             ${phase === 'exploding' ? 'animate-[packExplode_0.4s_ease-out_forwards]' : ''}
           `}
+          style={{ perspective: '1000px' }}
         >
           {/* Pack glow */}
           <div className={`
             absolute -inset-4 rounded-3xl blur-2xl transition-opacity duration-300
             bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500
             ${phase === 'shaking' ? 'opacity-60 animate-pulse' : ''}
-            ${phase === 'tearing' ? 'opacity-80' : ''}
+            ${phase === 'tearing' || phase === 'lifting' ? 'opacity-80' : ''}
             ${phase === 'exploding' ? 'opacity-0' : 'opacity-40'}
           `} />
+
+          {/* Card backs peeking out (visible during lifting) */}
+          {(phase === 'lifting' || phase === 'exploding') && (
+            <div className="absolute inset-x-4 top-8 bottom-4 flex justify-center">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-16 h-24 rounded-lg bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 border border-white/20 shadow-lg"
+                  style={{
+                    transform: `translateX(${(i - 2) * 12}px) translateY(${Math.abs(i - 2) * 4}px) rotate(${(i - 2) * 3}deg)`,
+                    zIndex: 5 - Math.abs(i - 2),
+                  }}
+                >
+                  {/* Card back design */}
+                  <div className="absolute inset-2 rounded border border-white/10 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                      <span className="text-white font-black text-xs">TC</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           
-          {/* Pack body */}
+          {/* Pack bottom half (stays in place) */}
           <div className={`
-            relative w-full h-full rounded-2xl overflow-hidden
+            absolute bottom-0 left-0 right-0 h-2/3 rounded-b-2xl overflow-hidden
             bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-600
-            border-2 border-white/20 shadow-2xl
-            ${phase === 'tearing' ? 'before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/0 before:via-white/50 before:to-white/0 before:animate-[tearLine_0.6s_ease-in-out_forwards]' : ''}
+            border-2 border-t-0 border-white/20 shadow-2xl
+            ${phase === 'lifting' ? 'z-10' : ''}
           `}>
-            {/* Pack design */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-              {/* Decorative top */}
+            <div className="absolute inset-0 flex items-end justify-center pb-6">
+              <p className="text-sm text-white/60">5 Cards Inside</p>
+            </div>
+          </div>
+          
+          {/* Pack top half (lifts up) */}
+          <div 
+            className={`
+              absolute top-0 left-0 right-0 h-1/3 rounded-t-2xl overflow-hidden
+              bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-600
+              border-2 border-b-0 border-white/20 shadow-2xl
+              transition-transform duration-700 origin-bottom
+              ${phase === 'lifting' ? 'animate-[packLift_0.8s_ease-out_forwards]' : ''}
+              ${phase === 'exploding' ? 'opacity-0' : ''}
+            `}
+            style={{ transformStyle: 'preserve-3d' }}
+          >
+            {/* Pack design on top */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white/20 to-transparent" />
-              
-              {/* Logo area */}
-              <div className="w-24 h-24 rounded-2xl bg-black/30 backdrop-blur-sm flex items-center justify-center mb-4 border border-white/10">
-                <span className="text-4xl font-black text-white/90">TC</span>
+              <div className="w-16 h-16 rounded-xl bg-black/30 backdrop-blur-sm flex items-center justify-center border border-white/10">
+                <span className="text-2xl font-black text-white/90">TC</span>
               </div>
-              
-              <h3 className="text-xl font-bold text-white text-center tracking-wide">CSC Trading Cards</h3>
-              <p className="text-sm text-white/60 mt-1">5 Cards Inside</p>
-              
-              {/* Shimmer effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-[packShimmer_2s_ease-in-out_infinite]" />
             </div>
             
-            {/* Tear line indicator */}
-            {phase === 'tearing' && (
-              <div className="absolute top-1/3 left-0 right-0 h-1 overflow-hidden">
-                <div className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-[tearAcross_0.6s_ease-out_forwards]" />
-              </div>
-            )}
+            {/* Shimmer effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-[packShimmer_2s_ease-in-out_infinite]" />
           </div>
+
+          {/* Full pack (shown during shaking/tearing) */}
+          {(phase === 'shaking' || phase === 'tearing') && (
+            <div className={`
+              absolute inset-0 rounded-2xl overflow-hidden
+              bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-600
+              border-2 border-white/20 shadow-2xl
+            `}>
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+                <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white/20 to-transparent" />
+                <div className="w-24 h-24 rounded-2xl bg-black/30 backdrop-blur-sm flex items-center justify-center mb-4 border border-white/10">
+                  <span className="text-4xl font-black text-white/90">TC</span>
+                </div>
+                <h3 className="text-xl font-bold text-white text-center tracking-wide">CSC Trading Cards</h3>
+                <p className="text-sm text-white/60 mt-1">5 Cards Inside</p>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-[packShimmer_2s_ease-in-out_infinite]" />
+              </div>
+              
+              {/* Tear line indicator */}
+              {phase === 'tearing' && (
+                <div className="absolute top-1/3 left-0 right-0 h-1 overflow-hidden">
+                  <div className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-[tearAcross_0.6s_ease-out_forwards]" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
         
         {/* Status text */}
         <p className="mt-8 text-white/60 font-medium text-lg animate-pulse">
           {phase === 'shaking' && 'Opening pack...'}
           {phase === 'tearing' && 'Tearing open...'}
+          {phase === 'lifting' && 'Revealing cards...'}
           {phase === 'exploding' && '✨'}
         </p>
       </div>
