@@ -322,7 +322,7 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
           <span className="px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Foil 20%</span>
           <span className="px-3 py-1.5 rounded-full bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">Holo 8%</span>
           <span className="px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Gold 2%</span>
-          <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 border border-fuchsia-500/20">Prismatic 0.5%</span>
+          <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-pink-500/20 text-fuchsia-300 border border-fuchsia-400/30">Prismatic 0.5%</span>
         </div>
       </div>
     </div>
