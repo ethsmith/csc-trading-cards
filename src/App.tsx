@@ -19,6 +19,8 @@ function App() {
   const [collection, setCollection] = useState<TradingCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingGiftsCount, setPendingGiftsCount] = useState(0);
+  const [pendingTradesCount, setPendingTradesCount] = useState(0);
 
   const fetchCollection = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -46,8 +48,21 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchCollection();
+      // Fetch pending gifts count
+      api.getPendingGifts()
+        .then(({ gifts }) => setPendingGiftsCount(gifts.length))
+        .catch((err) => console.error('Failed to fetch pending gifts:', err));
+      // Fetch pending incoming trades count
+      api.getTrades('incoming')
+        .then(({ trades }) => {
+          const pending = trades.filter((t: { status: string }) => t.status === 'pending');
+          setPendingTradesCount(pending.length);
+        })
+        .catch((err) => console.error('Failed to fetch pending trades:', err));
     } else {
       setCollection([]);
+      setPendingGiftsCount(0);
+      setPendingTradesCount(0);
     }
   }, [isAuthenticated, fetchCollection]);
 
@@ -118,6 +133,11 @@ function App() {
               >
                 <ArrowLeftRight className="w-4 h-4" />
                 Trading
+                {pendingTradesCount > 0 && (
+                  <span className="bg-amber-500 text-black text-xs px-2 py-0.5 rounded-full font-bold min-w-[20px] text-center">
+                    {pendingTradesCount}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('gifts')}
@@ -131,6 +151,11 @@ function App() {
               >
                 <Gift className="w-4 h-4" />
                 Gifts
+                {pendingGiftsCount > 0 && (
+                  <span className="bg-emerald-500 text-black text-xs px-2 py-0.5 rounded-full font-bold min-w-[20px] text-center">
+                    {pendingGiftsCount}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('examples')}
