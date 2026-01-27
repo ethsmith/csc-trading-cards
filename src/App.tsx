@@ -145,7 +145,7 @@ function App() {
             )}
 
             {activeTab === 'examples' && (
-              <ExampleCards />
+              <ExampleCards players={players} />
             )}
           </>
         )}

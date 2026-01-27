@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Library, Filter, Trash2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Library, Filter, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
 import { TradingCard } from './TradingCard';
 import { getCollectionStats } from '../store/cardStore';
@@ -25,6 +25,8 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
   const [filterRarity, setFilterRarity] = useState<FilterRarity>('all');
   const [filterTier, setFilterTier] = useState<string>('all');
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
 
   const stats = getCollectionStats(cards);
 
@@ -34,7 +36,7 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
     .filter((card) => filterRarity === 'all' || card.rarity === filterRarity)
     .filter((card) => filterTier === 'all' || card.player.tier?.name === filterTier);
 
-  const sortedCards = [...filteredCards].sort((a, b) => {
+  const sortedCards = useMemo(() => [...filteredCards].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
         return b.obtainedAt - a.obtainedAt;
@@ -49,7 +51,18 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
       default:
         return 0;
     }
-  });
+  }), [filteredCards, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedCards.length / perPage);
+  const validPage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedCards = sortedCards.slice((validPage - 1) * perPage, validPage * perPage);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (setter: (val: any) => void, value: any) => {
+    setter(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="space-y-8">
@@ -88,7 +101,7 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
           <label className="text-white/40 text-sm font-medium">Sort:</label>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            onChange={(e) => handleFilterChange(setSortBy, e.target.value as SortOption)}
             className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50"
           >
             <option value="newest">Newest First</option>
@@ -103,7 +116,7 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
           <label className="text-white/40 text-sm font-medium">Rarity:</label>
           <select
             value={filterRarity}
-            onChange={(e) => setFilterRarity(e.target.value as FilterRarity)}
+            onChange={(e) => handleFilterChange(setFilterRarity, e.target.value as FilterRarity)}
             className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50"
           >
             <option value="all">All</option>
@@ -119,7 +132,7 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
           <label className="text-white/40 text-sm font-medium">Tier:</label>
           <select
             value={filterTier}
-            onChange={(e) => setFilterTier(e.target.value)}
+            onChange={(e) => handleFilterChange(setFilterTier, e.target.value)}
             className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50"
           >
             <option value="all">All</option>
@@ -128,6 +141,23 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
                 {tier}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-white/40 text-sm font-medium">Per Page:</label>
+          <select
+            value={perPage}
+            onChange={(e) => {
+              setPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
           </select>
         </div>
 
@@ -186,11 +216,68 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 justify-items-center">
-          {sortedCards.map((card) => (
-            <TradingCard key={card.id} card={card} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 justify-items-center">
+            {paginatedCards.map((card) => (
+              <TradingCard key={card.id} card={card} />
+            ))}
+          </div>
+
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 pt-6">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={validPage <= 1}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+
+              <div className="flex items-center gap-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (validPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (validPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = validPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                        pageNum === validPage
+                          ? 'bg-violet-500 text-white'
+                          : 'text-white/60 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={validPage >= totalPages}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <p className="text-center text-white/30 text-sm">
+            Showing {(validPage - 1) * perPage + 1}-{Math.min(validPage * perPage, sortedCards.length)} of {sortedCards.length} cards
+          </p>
+        </>
       )}
     </div>
   );
