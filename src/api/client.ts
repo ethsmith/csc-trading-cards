@@ -172,6 +172,36 @@ class ApiClient {
       body: JSON.stringify(options),
     });
   }
+
+  async getPendingGifts(): Promise<{
+    gifts: Array<{
+      id: string;
+      name: string;
+      packCount: number;
+      expiresAt: string | null;
+      createdAt: string;
+    }>;
+    totalPacks: number;
+  }> {
+    return this.request('/gifts/pending');
+  }
+
+  async claimGift(giftId: string): Promise<{
+    message: string;
+    packsClaimed: number;
+    newPackBalance: number;
+  }> {
+    return this.request(`/gifts/claim/${giftId}`, { method: 'POST' });
+  }
+
+  async claimAllGifts(): Promise<{
+    message: string;
+    giftsClaimed: number;
+    totalPacks: number;
+    newPackBalance: number;
+  }> {
+    return this.request('/gifts/claim-all', { method: 'POST' });
+  }
 }
 
 export const api = new ApiClient();

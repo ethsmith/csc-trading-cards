@@ -3,14 +3,14 @@ import { Package, Library, Loader2, Eye, LogIn, LogOut, Gift, User, ArrowLeftRig
 import { PackOpening } from './components/PackOpening';
 import { Collection } from './components/Collection';
 import { ExampleCards } from './components/ExampleCards';
-import { RedeemCode } from './components/RedeemCode';
 import { Trading } from './components/Trading';
+import { Gifts } from './components/Gifts';
 import { useAuth } from './context/AuthContext';
 import { api } from './api/client';
 import { apiCardToTradingCard } from './types/api';
 import type { PlayerWithStats, TradingCard } from './types/player';
 
-type Tab = 'packs' | 'collection' | 'trading' | 'redeem' | 'examples';
+type Tab = 'packs' | 'collection' | 'trading' | 'gifts' | 'examples';
 
 function App() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
@@ -120,17 +120,17 @@ function App() {
                 Trading
               </button>
               <button
-                onClick={() => setActiveTab('redeem')}
+                onClick={() => setActiveTab('gifts')}
                 className={`
                   flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200
-                  ${activeTab === 'redeem'
+                  ${activeTab === 'gifts'
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25'
                     : 'text-white/50 hover:text-white hover:bg-white/[0.06]'
                   }
                 `}
               >
                 <Gift className="w-4 h-4" />
-                Redeem
+                Gifts
               </button>
               <button
                 onClick={() => setActiveTab('examples')}
@@ -283,17 +283,17 @@ function App() {
               )
             )}
 
-            {activeTab === 'redeem' && (
+            {activeTab === 'gifts' && (
               isAuthenticated ? (
-                <RedeemCode />
+                <Gifts />
               ) : (
                 <div className="text-center py-20 space-y-6">
                   <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto">
                     <Gift className="w-10 h-10 text-white/20" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Login to Redeem Codes</h2>
-                    <p className="text-white/50">Connect your Discord account to redeem pack codes</p>
+                    <h2 className="text-2xl font-bold text-white mb-2">Login to View Gifts</h2>
+                    <p className="text-white/50">Connect your Discord account to claim your gifts</p>
                   </div>
                   <button
                     onClick={login}
