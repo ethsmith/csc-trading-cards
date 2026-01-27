@@ -615,9 +615,9 @@ export function Trading() {
                           <button
                             key={card.id}
                             onClick={() => toggleCardSelection(card.id, 'offered')}
-                            className={`relative rounded-xl transition-all ${
+                            className={`relative rounded-2xl transition-all ${
                               selectedOffered.has(card.id)
-                                ? 'ring-2 ring-emerald-500'
+                                ? 'ring-2 ring-offset-2 ring-offset-transparent ring-emerald-500'
                                 : 'hover:ring-2 hover:ring-white/20'
                             }`}
                           >
@@ -735,9 +735,9 @@ export function Trading() {
                             <button
                               key={card.id}
                               onClick={() => toggleCardSelection(card.id, 'requested')}
-                              className={`relative rounded-xl transition-all ${
+                              className={`relative rounded-2xl transition-all ${
                                 selectedRequested.has(card.id)
-                                  ? 'ring-2 ring-fuchsia-500'
+                                  ? 'ring-2 ring-offset-2 ring-offset-transparent ring-fuchsia-500'
                                   : 'hover:ring-2 hover:ring-white/20'
                               }`}
                             >
