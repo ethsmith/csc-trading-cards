@@ -54,10 +54,6 @@ function App() {
     setCollection((prev) => [...newCards, ...prev]);
   };
 
-  const handleClearCollection = () => {
-    setCollection([]);
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -229,7 +225,7 @@ function App() {
 
             {activeTab === 'collection' && (
               isAuthenticated ? (
-                <Collection cards={collection} onClearCollection={handleClearCollection} />
+                <Collection cards={collection} />
               ) : (
                 <div className="text-center py-20 space-y-6">
                   <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto">

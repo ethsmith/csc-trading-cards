@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Library, Filter, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Library, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
 import { TradingCard } from './TradingCard';
 
@@ -28,7 +28,6 @@ function getCollectionStats(cards: TradingCardType[]) {
 
 interface CollectionProps {
   cards: TradingCardType[];
-  onClearCollection: () => void;
 }
 
 type SortOption = 'newest' | 'oldest' | 'rarity' | 'rating' | 'name';
@@ -42,11 +41,10 @@ const RARITY_ORDER: Record<CardRarity, number> = {
   normal: 1,
 };
 
-export function Collection({ cards, onClearCollection }: CollectionProps) {
+export function Collection({ cards }: CollectionProps) {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterRarity, setFilterRarity] = useState<FilterRarity>('all');
   const [filterTier, setFilterTier] = useState<string>('all');
-  const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
@@ -185,45 +183,21 @@ export function Collection({ cards, onClearCollection }: CollectionProps) {
 
         <div className="flex-1" />
 
-        {cards.length > 0 && (
+        {(filterRarity !== 'all' || filterTier !== 'all' || sortBy !== 'newest') && (
           <button
-            onClick={() => setShowConfirmClear(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+            onClick={() => {
+              setFilterRarity('all');
+              setFilterTier('all');
+              setSortBy('newest');
+              setCurrentPage(1);
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
           >
-            <Trash2 className="w-4 h-4" />
-            Clear All
+            <X className="w-4 h-4" />
+            Clear Filters
           </button>
         )}
       </div>
-
-      {/* Confirm clear modal */}
-      {showConfirmClear && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-8 max-w-md mx-4 space-y-5 shadow-2xl">
-            <h3 className="text-xl font-bold text-white">Clear Collection?</h3>
-            <p className="text-white/50 leading-relaxed">
-              This will permanently delete all <span className="text-white font-semibold">{cards.length}</span> cards from your collection. This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                onClick={() => setShowConfirmClear(false)}
-                className="px-5 py-2.5 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  onClearCollection();
-                  setShowConfirmClear(false);
-                }}
-                className="px-5 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-500 transition-colors"
-              >
-                Delete All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Cards grid */}
       {sortedCards.length === 0 ? (
