@@ -1,13 +1,23 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeftRight, Search, Check, X, Clock, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { ArrowLeftRight, Search, Check, X, Clock, ChevronDown, ChevronUp, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { api } from '../api/client';
 import { apiCardToTradingCard } from '../types/api';
 import type { TradeOffer, OwnedCard } from '../types/api';
 import { TradingCard } from './TradingCard';
-import type { TradingCard as TradingCardType } from '../types/player';
+import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
 
 type TradeTab = 'incoming' | 'outgoing' | 'create';
 type TradeStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+type SortOption = 'newest' | 'oldest' | 'rarity' | 'rating' | 'name';
+type FilterRarity = CardRarity | 'all';
+
+const RARITY_ORDER: Record<CardRarity, number> = {
+  prismatic: 5,
+  gold: 4,
+  holo: 3,
+  foil: 2,
+  normal: 1,
+};
 
 interface UserSearchResult {
   discordId: string;
@@ -33,6 +43,20 @@ export function Trading() {
   const [selectedRequested, setSelectedRequested] = useState<Set<string>>(new Set());
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Filter and pagination state for my cards
+  const [mySort, setMySort] = useState<SortOption>('newest');
+  const [myRarity, setMyRarity] = useState<FilterRarity>('all');
+  const [myTier, setMyTier] = useState<string>('all');
+  const [myPage, setMyPage] = useState(1);
+
+  // Filter and pagination state for their cards
+  const [theirSort, setTheirSort] = useState<SortOption>('newest');
+  const [theirRarity, setTheirRarity] = useState<FilterRarity>('all');
+  const [theirTier, setTheirTier] = useState<string>('all');
+  const [theirPage, setTheirPage] = useState(1);
+
+  const CARDS_PER_PAGE = 8;
 
   useEffect(() => {
     fetchTrades();
@@ -199,6 +223,52 @@ export function Trading() {
     () => trades.filter((t) => t.fromUserId && t.status === 'pending'),
     [trades]
   );
+
+  // Get unique tiers from cards
+  const myTiers = useMemo(() => [...new Set(myCards.map((c) => c.player.tier?.name).filter(Boolean))], [myCards]);
+  const theirTiers = useMemo(() => [...new Set(theirCards.map((c) => c.player.tier?.name).filter(Boolean))], [theirCards]);
+
+  // Filter and sort my cards
+  const filteredMyCards = useMemo(() => {
+    let cards = myCards
+      .filter((card) => myRarity === 'all' || card.rarity === myRarity)
+      .filter((card) => myTier === 'all' || card.player.tier?.name === myTier);
+
+    return cards.sort((a, b) => {
+      switch (mySort) {
+        case 'newest': return b.obtainedAt - a.obtainedAt;
+        case 'oldest': return a.obtainedAt - b.obtainedAt;
+        case 'rarity': return RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity];
+        case 'rating': return (b.player.stats?.rating || 0) - (a.player.stats?.rating || 0);
+        case 'name': return a.player.name.localeCompare(b.player.name);
+        default: return 0;
+      }
+    });
+  }, [myCards, myRarity, myTier, mySort]);
+
+  // Filter and sort their cards
+  const filteredTheirCards = useMemo(() => {
+    let cards = theirCards
+      .filter((card) => theirRarity === 'all' || card.rarity === theirRarity)
+      .filter((card) => theirTier === 'all' || card.player.tier?.name === theirTier);
+
+    return cards.sort((a, b) => {
+      switch (theirSort) {
+        case 'newest': return b.obtainedAt - a.obtainedAt;
+        case 'oldest': return a.obtainedAt - b.obtainedAt;
+        case 'rarity': return RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity];
+        case 'rating': return (b.player.stats?.rating || 0) - (a.player.stats?.rating || 0);
+        case 'name': return a.player.name.localeCompare(b.player.name);
+        default: return 0;
+      }
+    });
+  }, [theirCards, theirRarity, theirTier, theirSort]);
+
+  // Paginate
+  const myTotalPages = Math.ceil(filteredMyCards.length / CARDS_PER_PAGE);
+  const theirTotalPages = Math.ceil(filteredTheirCards.length / CARDS_PER_PAGE);
+  const paginatedMyCards = filteredMyCards.slice((myPage - 1) * CARDS_PER_PAGE, myPage * CARDS_PER_PAGE);
+  const paginatedTheirCards = filteredTheirCards.slice((theirPage - 1) * CARDS_PER_PAGE, theirPage * CARDS_PER_PAGE);
 
   const getStatusColor = (status: TradeStatus) => {
     switch (status) {
@@ -475,62 +545,210 @@ export function Trading() {
 
               {selectedUser && (
                 <>
-                  {/* Your cards */}
-                  <div className="space-y-3">
-                    <h3 className="text-white font-medium">Your cards to offer</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      {myCards.map((card) => (
-                        <button
-                          key={card.id}
-                          onClick={() => toggleCardSelection(card.id, 'offered')}
-                          className={`relative rounded-xl transition-all ${
-                            selectedOffered.has(card.id)
-                              ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-zinc-900'
-                              : 'hover:ring-2 hover:ring-white/20'
-                          }`}
-                        >
-                          <div className="transform scale-90 origin-top-left">
-                            <TradingCard card={card} />
-                          </div>
-                          {selectedOffered.has(card.id) && (
-                            <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                              <Check className="w-4 h-4 text-white" />
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Two column layout */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left column - Your cards */}
+                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-white font-medium">Your Cards</h3>
+                        <span className="text-emerald-400 text-sm font-medium">
+                          {selectedOffered.size} selected
+                        </span>
+                      </div>
 
-                  {/* Their cards */}
-                  <div className="space-y-3">
-                    <h3 className="text-white font-medium">Cards you want from {selectedUser.username}</h3>
-                    {theirCards.length === 0 ? (
-                      <p className="text-white/40 text-sm">This user has no cards to trade</p>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {theirCards.map((card) => (
+                      {/* Filters */}
+                      <div className="flex flex-wrap gap-2">
+                        <select
+                          value={mySort}
+                          onChange={(e) => { setMySort(e.target.value as SortOption); setMyPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="newest">Newest</option>
+                          <option value="oldest">Oldest</option>
+                          <option value="rarity">Rarity</option>
+                          <option value="rating">Rating</option>
+                          <option value="name">Name</option>
+                        </select>
+                        <select
+                          value={myRarity}
+                          onChange={(e) => { setMyRarity(e.target.value as FilterRarity); setMyPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="all">All Rarities</option>
+                          <option value="normal">Normal</option>
+                          <option value="foil">Foil</option>
+                          <option value="holo">Holo</option>
+                          <option value="gold">Gold</option>
+                          <option value="prismatic">Prismatic</option>
+                        </select>
+                        <select
+                          value={myTier}
+                          onChange={(e) => { setMyTier(e.target.value); setMyPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="all">All Tiers</option>
+                          {myTiers.map((tier) => (
+                            <option key={tier} value={tier}>{tier}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Cards grid */}
+                      <div className="grid grid-cols-2 gap-3 min-h-[400px]">
+                        {paginatedMyCards.map((card) => (
                           <button
                             key={card.id}
-                            onClick={() => toggleCardSelection(card.id, 'requested')}
+                            onClick={() => toggleCardSelection(card.id, 'offered')}
                             className={`relative rounded-xl transition-all ${
-                              selectedRequested.has(card.id)
-                                ? 'ring-2 ring-fuchsia-500 ring-offset-2 ring-offset-zinc-900'
+                              selectedOffered.has(card.id)
+                                ? 'ring-2 ring-emerald-500'
                                 : 'hover:ring-2 hover:ring-white/20'
                             }`}
                           >
-                            <div className="transform scale-90 origin-top-left">
-                              <TradingCard card={card} />
-                            </div>
-                            {selectedRequested.has(card.id) && (
-                              <div className="absolute top-2 right-2 w-6 h-6 bg-fuchsia-500 rounded-full flex items-center justify-center">
+                            <TradingCard card={card} />
+                            {selectedOffered.has(card.id) && (
+                              <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center z-10">
                                 <Check className="w-4 h-4 text-white" />
                               </div>
                             )}
                           </button>
                         ))}
+                        {paginatedMyCards.length === 0 && (
+                          <div className="col-span-2 flex items-center justify-center text-white/40 text-sm">
+                            No cards match filters
+                          </div>
+                        )}
                       </div>
-                    )}
+
+                      {/* Pagination */}
+                      {myTotalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                          <span className="text-white/40 text-xs">
+                            Page {myPage} of {myTotalPages}
+                          </span>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setMyPage((p) => Math.max(1, p - 1))}
+                              disabled={myPage === 1}
+                              className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft className="w-4 h-4 text-white/60" />
+                            </button>
+                            <button
+                              onClick={() => setMyPage((p) => Math.min(myTotalPages, p + 1))}
+                              disabled={myPage === myTotalPages}
+                              className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronRight className="w-4 h-4 text-white/60" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right column - Their cards */}
+                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-white font-medium">{selectedUser.username}'s Cards</h3>
+                        <span className="text-fuchsia-400 text-sm font-medium">
+                          {selectedRequested.size} selected
+                        </span>
+                      </div>
+
+                      {/* Filters */}
+                      <div className="flex flex-wrap gap-2">
+                        <select
+                          value={theirSort}
+                          onChange={(e) => { setTheirSort(e.target.value as SortOption); setTheirPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="newest">Newest</option>
+                          <option value="oldest">Oldest</option>
+                          <option value="rarity">Rarity</option>
+                          <option value="rating">Rating</option>
+                          <option value="name">Name</option>
+                        </select>
+                        <select
+                          value={theirRarity}
+                          onChange={(e) => { setTheirRarity(e.target.value as FilterRarity); setTheirPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="all">All Rarities</option>
+                          <option value="normal">Normal</option>
+                          <option value="foil">Foil</option>
+                          <option value="holo">Holo</option>
+                          <option value="gold">Gold</option>
+                          <option value="prismatic">Prismatic</option>
+                        </select>
+                        <select
+                          value={theirTier}
+                          onChange={(e) => { setTheirTier(e.target.value); setTheirPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="all">All Tiers</option>
+                          {theirTiers.map((tier) => (
+                            <option key={tier} value={tier}>{tier}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Cards grid */}
+                      <div className="grid grid-cols-2 gap-3 min-h-[400px]">
+                        {theirCards.length === 0 ? (
+                          <div className="col-span-2 flex items-center justify-center text-white/40 text-sm">
+                            This user has no cards
+                          </div>
+                        ) : paginatedTheirCards.length === 0 ? (
+                          <div className="col-span-2 flex items-center justify-center text-white/40 text-sm">
+                            No cards match filters
+                          </div>
+                        ) : (
+                          paginatedTheirCards.map((card) => (
+                            <button
+                              key={card.id}
+                              onClick={() => toggleCardSelection(card.id, 'requested')}
+                              className={`relative rounded-xl transition-all ${
+                                selectedRequested.has(card.id)
+                                  ? 'ring-2 ring-fuchsia-500'
+                                  : 'hover:ring-2 hover:ring-white/20'
+                              }`}
+                            >
+                              <TradingCard card={card} />
+                              {selectedRequested.has(card.id) && (
+                                <div className="absolute top-2 right-2 w-6 h-6 bg-fuchsia-500 rounded-full flex items-center justify-center z-10">
+                                  <Check className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Pagination */}
+                      {theirTotalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                          <span className="text-white/40 text-xs">
+                            Page {theirPage} of {theirTotalPages}
+                          </span>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setTheirPage((p) => Math.max(1, p - 1))}
+                              disabled={theirPage === 1}
+                              className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft className="w-4 h-4 text-white/60" />
+                            </button>
+                            <button
+                              onClick={() => setTheirPage((p) => Math.min(theirTotalPages, p + 1))}
+                              disabled={theirPage === theirTotalPages}
+                              className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronRight className="w-4 h-4 text-white/60" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Summary and submit */}
