@@ -1,0 +1,175 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+class ApiClient {
+  private token: string | null = null;
+
+  constructor() {
+    this.token = localStorage.getItem('auth_token');
+  }
+
+  setToken(token: string | null) {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('auth_token', token);
+    } else {
+      localStorage.removeItem('auth_token');
+    }
+  }
+
+  getToken(): string | null {
+    return this.token;
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (this.token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
+
+    return response.json();
+  }
+
+  getLoginUrl(): string {
+    return `${API_BASE_URL}/auth/discord`;
+  }
+
+  async getMe(): Promise<{
+    discordId: string;
+    username: string;
+    avatar: string | null;
+    avatarUrl: string | null;
+  }> {
+    return this.request('/auth/me');
+  }
+
+  async getPlayers(): Promise<{ players: any[] }> {
+    return this.request('/players');
+  }
+
+  async getCollection(): Promise<{ cards: any[] }> {
+    return this.request('/collection');
+  }
+
+  async getCollectionStats(): Promise<{
+    total: number;
+    uniqueSnapshots: number;
+    byRarity: Record<string, number>;
+  }> {
+    return this.request('/collection/stats');
+  }
+
+  async openPack(packSize: number = 5): Promise<{
+    cards: any[];
+    newSnapshots: number;
+    message: string;
+  }> {
+    return this.request('/packs/open', {
+      method: 'POST',
+      body: JSON.stringify({ packSize }),
+    });
+  }
+
+  async redeemCode(code: string): Promise<{
+    message: string;
+    packCount: number;
+    cardsPerPack: number;
+    totalCards: number;
+    packs: any[][];
+    allCards: any[];
+  }> {
+    return this.request('/codes/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async getCodeInfo(code: string): Promise<{
+    code: string;
+    packCount: number;
+    cardsPerPack: number;
+    guaranteedRarities: any;
+    isRedeemed: boolean;
+    isExpired: boolean;
+    expiresAt: string | null;
+  }> {
+    return this.request(`/codes/${code}`);
+  }
+
+  async searchUsers(query: string): Promise<{ users: any[] }> {
+    return this.request(`/users/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async getUserProfile(discordId: string): Promise<any> {
+    return this.request(`/users/${discordId}`);
+  }
+
+  async getUserCollection(discordId: string): Promise<{ cards: any[]; isOwnCollection: boolean }> {
+    return this.request(`/collection/user/${discordId}`);
+  }
+
+  async getTrades(type: 'incoming' | 'outgoing' | 'all' = 'all'): Promise<{ trades: any[] }> {
+    return this.request(`/trades?type=${type}`);
+  }
+
+  async getPendingTrades(): Promise<{ trades: any[] }> {
+    return this.request('/trades/pending');
+  }
+
+  async createTrade(
+    toUserId: string,
+    offeredCardIds: string[],
+    requestedCardIds: string[]
+  ): Promise<any> {
+    return this.request('/trades', {
+      method: 'POST',
+      body: JSON.stringify({ toUserId, offeredCardIds, requestedCardIds }),
+    });
+  }
+
+  async acceptTrade(tradeId: string): Promise<any> {
+    return this.request(`/trades/${tradeId}/accept`, { method: 'POST' });
+  }
+
+  async rejectTrade(tradeId: string): Promise<any> {
+    return this.request(`/trades/${tradeId}/reject`, { method: 'POST' });
+  }
+
+  async cancelTrade(tradeId: string): Promise<any> {
+    return this.request(`/trades/${tradeId}/cancel`, { method: 'POST' });
+  }
+
+  async generatePackCode(options: {
+    packCount?: number;
+    cardsPerPack?: number;
+    guaranteedRarities?: Record<string, number>;
+    expiresInDays?: number;
+  } = {}): Promise<any> {
+    return this.request('/codes/generate', {
+      method: 'POST',
+      body: JSON.stringify(options),
+    });
+  }
+}
+
+export const api = new ApiClient();

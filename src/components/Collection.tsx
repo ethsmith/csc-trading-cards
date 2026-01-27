@@ -2,7 +2,29 @@ import { useState, useMemo } from 'react';
 import { Library, Filter, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
 import { TradingCard } from './TradingCard';
-import { getCollectionStats } from '../store/cardStore';
+
+function getCollectionStats(cards: TradingCardType[]) {
+  const byRarity: Record<CardRarity, number> = {
+    normal: 0,
+    foil: 0,
+    holo: 0,
+    gold: 0,
+    prismatic: 0,
+  };
+
+  const uniquePlayers = new Set<string>();
+
+  cards.forEach((card) => {
+    byRarity[card.rarity]++;
+    uniquePlayers.add(card.player.id);
+  });
+
+  return {
+    total: cards.length,
+    byRarity,
+    uniquePlayers: uniquePlayers.size,
+  };
+}
 
 interface CollectionProps {
   cards: TradingCardType[];

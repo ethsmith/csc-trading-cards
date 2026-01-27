@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import type { TradingCard as TradingCardType, PlayerWithStats } from '../types/player';
-import { openPack } from '../store/cardStore';
+import { api } from '../api/client';
+import { apiCardToTradingCard } from '../types/api';
 import { TradingCard } from './TradingCard';
 
 // Pre-generated particle data (deterministic pseudo-random spread)
@@ -25,11 +26,14 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
   const [phase, setPhase] = useState<OpeningPhase>('idle');
   const [revealedCards, setRevealedCards] = useState<TradingCardType[]>([]);
   const [currentRevealIndex, setCurrentRevealIndex] = useState(-1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleOpenPack = () => {
-    if (players.length === 0 || phase !== 'idle') return;
+  const handleOpenPack = async () => {
+    if (players.length === 0 || phase !== 'idle' || isLoading) return;
 
-    const newCards = openPack(players, 5);
+    setIsLoading(true);
+    setError(null);
     
     // Phase 1: Shaking
     setPhase('shaking');
@@ -48,13 +52,23 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
     setTimeout(() => {
       setPhase('exploding');
     }, 2000);
-    
-    // Phase 5: Revealing cards
-    setTimeout(() => {
-      setPhase('revealing');
-      setRevealedCards(newCards);
-      revealCardsSequentially(newCards);
-    }, 2600);
+
+    try {
+      const result = await api.openPack(5);
+      const newCards = result.cards.map(apiCardToTradingCard);
+      
+      // Phase 5: Revealing cards (after animation completes)
+      setTimeout(() => {
+        setPhase('revealing');
+        setRevealedCards(newCards);
+        revealCardsSequentially(newCards);
+        setIsLoading(false);
+      }, 2600);
+    } catch (err: any) {
+      setError(err.message || 'Failed to open pack');
+      setPhase('idle');
+      setIsLoading(false);
+    }
   };
 
   const revealCardsSequentially = (cards: TradingCardType[]) => {
@@ -313,6 +327,12 @@ export function PackOpening({ players, onCardsObtained }: PackOpeningProps) {
 
       {players.length === 0 && (
         <p className="text-white/40 text-sm font-medium">Loading players...</p>
+      )}
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
+          {error}
+        </div>
       )}
 
       <div className="text-center space-y-3">
