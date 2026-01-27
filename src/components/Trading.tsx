@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeftRight, Search, Check, X, Clock, ChevronDown, ChevronUp, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { apiCardToTradingCard } from '../types/api';
 import type { TradeOffer, OwnedCard } from '../types/api';
 import { TradingCard } from './TradingCard';
@@ -26,6 +27,7 @@ interface UserSearchResult {
 }
 
 export function Trading() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TradeTab>('incoming');
   const [trades, setTrades] = useState<TradeOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,13 +219,13 @@ export function Trading() {
   };
 
   const incomingTrades = useMemo(
-    () => trades.filter((t) => t.toUserId && t.status === 'pending'),
-    [trades]
+    () => trades.filter((t) => t.toUserId === user?.discordId && t.status === 'pending'),
+    [trades, user?.discordId]
   );
 
   const outgoingTrades = useMemo(
-    () => trades.filter((t) => t.fromUserId && t.status === 'pending'),
-    [trades]
+    () => trades.filter((t) => t.fromUserId === user?.discordId && t.status === 'pending'),
+    [trades, user?.discordId]
   );
 
   // Get unique tiers from cards
