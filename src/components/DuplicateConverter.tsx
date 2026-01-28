@@ -10,7 +10,7 @@ interface DuplicateConverterProps {
   onPackBalanceChange?: (newBalance: number) => void;
 }
 
-const CARDS_PER_PACK = 15;
+const CARDS_PER_PACK = 30;
 
 export function DuplicateConverter({ onBack, onPackBalanceChange }: DuplicateConverterProps) {
   const [loading, setLoading] = useState(true);
