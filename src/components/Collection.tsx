@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Library, Filter, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
+import { RARITY_TEXT_COLORS } from '../types/player';
 import { TradingCard } from './TradingCard';
 
 function getCollectionStats(cards: TradingCardType[]) {
@@ -106,11 +107,11 @@ export function Collection({ cards }: CollectionProps) {
             <span className="text-white font-semibold">{stats.uniquePlayers}</span>
           </div>
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 flex gap-3 font-medium">
-            <span className="text-white/40">{stats.byRarity.normal}</span>
-            <span className="text-blue-400">{stats.byRarity.foil}</span>
-            <span className="text-fuchsia-400">{stats.byRarity.holo}</span>
-            <span className="text-amber-400">{stats.byRarity.gold}</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400">{stats.byRarity.prismatic}</span>
+            <span className={RARITY_TEXT_COLORS.normal}>{stats.byRarity.normal}</span>
+            <span className={RARITY_TEXT_COLORS.foil}>{stats.byRarity.foil}</span>
+            <span className={RARITY_TEXT_COLORS.holo}>{stats.byRarity.holo}</span>
+            <span className={RARITY_TEXT_COLORS.gold}>{stats.byRarity.gold}</span>
+            <span className={RARITY_TEXT_COLORS.prismatic}>{stats.byRarity.prismatic}</span>
           </div>
         </div>
       </div>

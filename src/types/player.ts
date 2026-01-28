@@ -53,32 +53,56 @@ export const RARITY_WEIGHTS: Record<CardRarity, number> = {
   prismatic: 0.5,
 };
 
-export const RARITY_COLORS: Record<CardRarity, { border: string; bg: string; glow: string }> = {
+export const RARITY_STYLES: Record<CardRarity, {
+  cardBg: string;
+  border: string;
+  headerBg: string;
+  accentColor: string;
+  statBg: string;
+}> = {
   normal: {
-    border: 'border-gray-500',
-    bg: 'bg-gradient-to-br from-gray-700 to-gray-900',
-    glow: '',
+    cardBg: 'bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900',
+    border: 'border-slate-500',
+    headerBg: 'bg-gradient-to-r from-slate-600 to-slate-700',
+    accentColor: 'text-slate-300',
+    statBg: 'bg-slate-700/80',
   },
   foil: {
+    cardBg: 'bg-gradient-to-b from-blue-900 via-indigo-900 to-purple-900',
     border: 'border-blue-400',
-    bg: 'bg-gradient-to-br from-blue-600 to-purple-700',
-    glow: 'shadow-lg shadow-blue-500/50',
+    headerBg: 'bg-gradient-to-r from-blue-600 to-indigo-600',
+    accentColor: 'text-blue-300',
+    statBg: 'bg-blue-900/80',
   },
   holo: {
-    border: 'border-pink-400',
-    bg: 'bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-500',
-    glow: 'shadow-xl shadow-pink-500/50 animate-pulse',
+    cardBg: 'bg-gradient-to-b from-fuchsia-900 via-purple-900 to-cyan-900',
+    border: 'border-fuchsia-400',
+    headerBg: 'bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-500',
+    accentColor: 'text-fuchsia-300',
+    statBg: 'bg-purple-900/80',
   },
   gold: {
+    cardBg: 'bg-gradient-to-b from-yellow-700 via-amber-800 to-orange-900',
     border: 'border-yellow-400',
-    bg: 'bg-gradient-to-br from-yellow-500 via-amber-400 to-yellow-600',
-    glow: 'shadow-2xl shadow-yellow-500/70',
+    headerBg: 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500',
+    accentColor: 'text-yellow-300',
+    statBg: 'bg-amber-900/80',
   },
   prismatic: {
+    cardBg: 'bg-gradient-to-b from-indigo-950 via-purple-950 to-slate-950',
     border: 'border-white',
-    bg: 'bg-gradient-to-br from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500',
-    glow: 'shadow-2xl shadow-white/50',
+    headerBg: 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500',
+    accentColor: 'text-white',
+    statBg: 'bg-white/10',
   },
+};
+
+export const RARITY_TEXT_COLORS: Record<CardRarity, string> = {
+  normal: 'text-white/40',
+  foil: 'text-blue-400',
+  holo: 'text-fuchsia-400',
+  gold: 'text-amber-400',
+  prismatic: 'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400',
 };
 
 export const TIER_COLORS: Record<string, string> = {

@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowLeftRight, Search, Check, X, Clock, ChevronDown, ChevronUp, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { apiCardToTradingCard } from '../types/api';
 import type { TradeOffer, OwnedCard } from '../types/api';
 import { TradingCard } from './TradingCard';
-import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
+import type { TradingCard as TradingCardType, CardRarity, PlayerWithStats } from '../types/player';
 
 type TradeTab = 'incoming' | 'outgoing' | 'create';
 type TradeStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
@@ -26,7 +26,11 @@ interface UserSearchResult {
   avatarUrl: string | null;
 }
 
-export function Trading() {
+interface TradingProps {
+  players: PlayerWithStats[];
+}
+
+export function Trading({ players }: TradingProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TradeTab>('incoming');
   const [trades, setTrades] = useState<TradeOffer[]>([]);
@@ -45,6 +49,7 @@ export function Trading() {
   const [selectedRequested, setSelectedRequested] = useState<Set<string>>(new Set());
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
 
   // Filter and pagination state for my cards
   const [mySort, setMySort] = useState<SortOption>('newest');
@@ -62,9 +67,58 @@ export function Trading() {
 
   const CARDS_PER_PAGE = 8;
 
+  const playersByDiscordId = useMemo(() => {
+    const map: Record<string, PlayerWithStats> = {};
+    for (const player of players) {
+      if (player.discordId) {
+        map[player.discordId] = player;
+      }
+    }
+    return map;
+  }, [players]);
+
+  const getDisplayName = useCallback((discordId: string): string => {
+    const player = playersByDiscordId[discordId];
+    if (player) return player.name;
+    if (usernames[discordId]) return usernames[discordId];
+    return discordId;
+  }, [playersByDiscordId, usernames]);
+
+  const fetchUsernames = useCallback(async (discordIds: string[]) => {
+    const unknownIds = discordIds.filter(
+      (id) => !playersByDiscordId[id] && !usernames[id]
+    );
+    if (unknownIds.length === 0) return;
+
+    const newUsernames: Record<string, string> = {};
+    await Promise.all(
+      unknownIds.map(async (id) => {
+        try {
+          const profile = await api.getUserProfile(id);
+          if (profile?.username) {
+            newUsernames[id] = profile.username;
+          }
+        } catch {
+          // Ignore errors, will show ID as fallback
+        }
+      })
+    );
+
+    if (Object.keys(newUsernames).length > 0) {
+      setUsernames((prev) => ({ ...prev, ...newUsernames }));
+    }
+  }, [playersByDiscordId, usernames]);
+
   useEffect(() => {
     fetchTrades();
   }, []);
+
+  useEffect(() => {
+    if (trades.length > 0) {
+      const discordIds = trades.flatMap((t) => [t.fromUserId, t.toUserId]);
+      fetchUsernames([...new Set(discordIds)]);
+    }
+  }, [trades, fetchUsernames]);
 
   useEffect(() => {
     if (activeTab === 'create') {
@@ -317,7 +371,7 @@ export function Trading() {
             </div>
             <div className="text-left">
               <p className="text-white font-medium">
-                {isIncoming ? 'From' : 'To'}: {isIncoming ? trade.fromUserId : trade.toUserId}
+                {isIncoming ? 'From' : 'To'}: {getDisplayName(isIncoming ? trade.fromUserId : trade.toUserId)}
               </p>
               <p className="text-white/40 text-sm">
                 {trade.offeredCards.length} card{trade.offeredCards.length !== 1 ? 's' : ''} offered •{' '}

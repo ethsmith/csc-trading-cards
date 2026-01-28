@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { TradingCard as TradingCardType } from '../types/player';
+import { RARITY_STYLES } from '../types/player';
 
 interface TradingCardProps {
   card: TradingCardType;
@@ -7,43 +8,6 @@ interface TradingCardProps {
   onClick?: () => void;
 }
 
-const RARITY_STYLES = {
-  normal: {
-    cardBg: 'bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900',
-    border: 'border-slate-500',
-    headerBg: 'bg-gradient-to-r from-slate-600 to-slate-700',
-    accentColor: 'text-slate-300',
-    statBg: 'bg-slate-700/80',
-  },
-  foil: {
-    cardBg: 'bg-gradient-to-b from-blue-900 via-indigo-900 to-purple-900',
-    border: 'border-blue-400',
-    headerBg: 'bg-gradient-to-r from-blue-600 to-indigo-600',
-    accentColor: 'text-blue-300',
-    statBg: 'bg-blue-900/80',
-  },
-  holo: {
-    cardBg: 'bg-gradient-to-b from-fuchsia-900 via-purple-900 to-cyan-900',
-    border: 'border-fuchsia-400',
-    headerBg: 'bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-500',
-    accentColor: 'text-fuchsia-300',
-    statBg: 'bg-purple-900/80',
-  },
-  gold: {
-    cardBg: 'bg-gradient-to-b from-yellow-700 via-amber-800 to-orange-900',
-    border: 'border-yellow-400',
-    headerBg: 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500',
-    accentColor: 'text-yellow-300',
-    statBg: 'bg-amber-900/80',
-  },
-  prismatic: {
-    cardBg: 'bg-gradient-to-b from-indigo-950 via-purple-950 to-slate-950',
-    border: 'border-white',
-    headerBg: 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500',
-    accentColor: 'text-white',
-    statBg: 'bg-white/10',
-  },
-};
 
 export function TradingCard({ card, isNew, onClick }: TradingCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);

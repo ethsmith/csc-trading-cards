@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { TradingCard } from './TradingCard';
 import type { TradingCard as TradingCardType, CardRarity, PlayerWithStats } from '../types/player';
+import { RARITY_TEXT_COLORS } from '../types/player';
 
 interface ExampleCardsProps {
   players: PlayerWithStats[];
@@ -132,14 +133,7 @@ export function ExampleCards({ players }: ExampleCardsProps) {
           <div key={rarity} className="flex flex-col items-center gap-3">
             <TradingCard card={createExampleCard(displayPlayer, rarity)} />
             <div className="text-center">
-              <span className={`
-                text-sm font-bold uppercase
-                ${rarity === 'normal' ? 'text-slate-400' : ''}
-                ${rarity === 'foil' ? 'text-blue-400' : ''}
-                ${rarity === 'holo' ? 'text-fuchsia-400' : ''}
-                ${rarity === 'gold' ? 'text-yellow-400' : ''}
-                ${rarity === 'prismatic' ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400' : ''}
-              `}>
+              <span className={`text-sm font-bold uppercase ${RARITY_TEXT_COLORS[rarity]}`}>
                 {rarity}
               </span>
               <p className="text-xs text-gray-500 mt-1">
