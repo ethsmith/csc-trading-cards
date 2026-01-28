@@ -49,6 +49,7 @@ export function Collection({ cards, onPackBalanceChange }: CollectionProps) {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterRarity, setFilterRarity] = useState<FilterRarity>('all');
   const [filterTier, setFilterTier] = useState<string>('all');
+  const [filterFranchise, setFilterFranchise] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
@@ -56,11 +57,13 @@ export function Collection({ cards, onPackBalanceChange }: CollectionProps) {
 
   const stats = getCollectionStats(cards);
 
-  const tiers = [...new Set(cards.map((c) => c.player.tier?.name).filter(Boolean))];
+  const tiers = [...new Set(cards.map((c) => c.player.tier?.name).filter(Boolean))].sort();
+  const franchises = [...new Set(cards.map((c) => c.player.team?.franchise?.name).filter(Boolean))].sort();
 
   const filteredCards = cards
     .filter((card) => filterRarity === 'all' || card.rarity === filterRarity)
     .filter((card) => filterTier === 'all' || card.player.tier?.name === filterTier)
+    .filter((card) => filterFranchise === 'all' || card.player.team?.franchise?.name === filterFranchise)
     .filter((card) => searchQuery === '' || card.player.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const sortedCards = useMemo(() => [...filteredCards].sort((a, b) => {
@@ -199,6 +202,22 @@ export function Collection({ cards, onPackBalanceChange }: CollectionProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <label className="text-white/40 text-sm font-medium">Franchise:</label>
+          <select
+            value={filterFranchise}
+            onChange={(e) => handleFilterChange(setFilterFranchise, e.target.value)}
+            className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+          >
+            <option value="all">All</option>
+            {franchises.map((franchise) => (
+              <option key={franchise} value={franchise}>
+                {franchise}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
           <label className="text-white/40 text-sm font-medium">Per Page:</label>
           <select
             value={perPage}
@@ -217,11 +236,12 @@ export function Collection({ cards, onPackBalanceChange }: CollectionProps) {
 
         <div className="flex-1" />
 
-        {(filterRarity !== 'all' || filterTier !== 'all' || sortBy !== 'newest' || searchQuery !== '') && (
+        {(filterRarity !== 'all' || filterTier !== 'all' || filterFranchise !== 'all' || sortBy !== 'newest' || searchQuery !== '') && (
           <button
             onClick={() => {
               setFilterRarity('all');
               setFilterTier('all');
+              setFilterFranchise('all');
               setSortBy('newest');
               setSearchQuery('');
               setCurrentPage(1);

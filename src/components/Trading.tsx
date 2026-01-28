@@ -55,6 +55,7 @@ export function Trading({ players }: TradingProps) {
   const [mySort, setMySort] = useState<SortOption>('newest');
   const [myRarity, setMyRarity] = useState<FilterRarity>('all');
   const [myTier, setMyTier] = useState<string>('all');
+  const [myFranchise, setMyFranchise] = useState<string>('all');
   const [mySearch, setMySearch] = useState('');
   const [myPage, setMyPage] = useState(1);
 
@@ -62,6 +63,7 @@ export function Trading({ players }: TradingProps) {
   const [theirSort, setTheirSort] = useState<SortOption>('newest');
   const [theirRarity, setTheirRarity] = useState<FilterRarity>('all');
   const [theirTier, setTheirTier] = useState<string>('all');
+  const [theirFranchise, setTheirFranchise] = useState<string>('all');
   const [theirSearch, setTheirSearch] = useState('');
   const [theirPage, setTheirPage] = useState(1);
 
@@ -282,15 +284,18 @@ export function Trading({ players }: TradingProps) {
     [trades, user?.discordId]
   );
 
-  // Get unique tiers from cards
-  const myTiers = useMemo(() => [...new Set(myCards.map((c) => c.player.tier?.name).filter(Boolean))], [myCards]);
-  const theirTiers = useMemo(() => [...new Set(theirCards.map((c) => c.player.tier?.name).filter(Boolean))], [theirCards]);
+  // Get unique tiers and franchises from cards
+  const myTiers = useMemo(() => [...new Set(myCards.map((c) => c.player.tier?.name).filter(Boolean))].sort(), [myCards]);
+  const theirTiers = useMemo(() => [...new Set(theirCards.map((c) => c.player.tier?.name).filter(Boolean))].sort(), [theirCards]);
+  const myFranchises = useMemo(() => [...new Set(myCards.map((c) => c.player.team?.franchise?.name).filter(Boolean))].sort(), [myCards]);
+  const theirFranchises = useMemo(() => [...new Set(theirCards.map((c) => c.player.team?.franchise?.name).filter(Boolean))].sort(), [theirCards]);
 
   // Filter and sort my cards
   const filteredMyCards = useMemo(() => {
     const cards = myCards
       .filter((card) => myRarity === 'all' || card.rarity === myRarity)
       .filter((card) => myTier === 'all' || card.player.tier?.name === myTier)
+      .filter((card) => myFranchise === 'all' || card.player.team?.franchise?.name === myFranchise)
       .filter((card) => mySearch === '' || card.player.name.toLowerCase().includes(mySearch.toLowerCase()));
 
     return cards.sort((a, b) => {
@@ -303,13 +308,14 @@ export function Trading({ players }: TradingProps) {
         default: return 0;
       }
     });
-  }, [myCards, myRarity, myTier, mySort, mySearch]);
+  }, [myCards, myRarity, myTier, myFranchise, mySort, mySearch]);
 
   // Filter and sort their cards
   const filteredTheirCards = useMemo(() => {
     const cards = theirCards
       .filter((card) => theirRarity === 'all' || card.rarity === theirRarity)
       .filter((card) => theirTier === 'all' || card.player.tier?.name === theirTier)
+      .filter((card) => theirFranchise === 'all' || card.player.team?.franchise?.name === theirFranchise)
       .filter((card) => theirSearch === '' || card.player.name.toLowerCase().includes(theirSearch.toLowerCase()));
 
     return cards.sort((a, b) => {
@@ -322,7 +328,7 @@ export function Trading({ players }: TradingProps) {
         default: return 0;
       }
     });
-  }, [theirCards, theirRarity, theirTier, theirSort, theirSearch]);
+  }, [theirCards, theirRarity, theirTier, theirFranchise, theirSort, theirSearch]);
 
   // Paginate
   const myTotalPages = Math.ceil(filteredMyCards.length / CARDS_PER_PAGE);
@@ -663,6 +669,16 @@ export function Trading({ players }: TradingProps) {
                             <option key={tier} value={tier}>{tier}</option>
                           ))}
                         </select>
+                        <select
+                          value={myFranchise}
+                          onChange={(e) => { setMyFranchise(e.target.value); setMyPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="all">All Franchises</option>
+                          {myFranchises.map((franchise) => (
+                            <option key={franchise} value={franchise}>{franchise}</option>
+                          ))}
+                        </select>
                       </div>
 
                       {/* Cards grid */}
@@ -772,6 +788,16 @@ export function Trading({ players }: TradingProps) {
                           <option value="all">All Tiers</option>
                           {theirTiers.map((tier) => (
                             <option key={tier} value={tier}>{tier}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={theirFranchise}
+                          onChange={(e) => { setTheirFranchise(e.target.value); setTheirPage(1); }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-2 py-1 text-xs font-medium focus:outline-none"
+                        >
+                          <option value="all">All Franchises</option>
+                          {theirFranchises.map((franchise) => (
+                            <option key={franchise} value={franchise}>{franchise}</option>
                           ))}
                         </select>
                       </div>
