@@ -115,6 +115,36 @@ export function DuplicateConverter({ onBack, onPackBalanceChange }: DuplicateCon
     }
   };
 
+  const handleTradeAll = async () => {
+    if (packsAvailable === 0) return;
+
+    setTrading(true);
+    setError(null);
+    
+    try {
+      let lastPackBalance = 0;
+      const totalPacks = packsAvailable;
+      
+      // Trade in batches of CARDS_PER_PACK
+      for (let i = 0; i < totalPacks; i++) {
+        const cardsToTrade = tradeableCards.slice(i * CARDS_PER_PACK, (i + 1) * CARDS_PER_PACK);
+        const result = await api.tradeDuplicates(cardsToTrade.map(c => c.id));
+        lastPackBalance = result.packBalance;
+      }
+      
+      setTradeSuccess({ packBalance: lastPackBalance });
+      onPackBalanceChange?.(lastPackBalance);
+      setSelectedCards(new Set());
+      await fetchCollection();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to trade duplicates');
+      // Refresh to show current state after partial success
+      await fetchCollection();
+    } finally {
+      setTrading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
@@ -241,23 +271,44 @@ export function DuplicateConverter({ onBack, onPackBalanceChange }: DuplicateCon
               </div>
             </div>
 
-            <button
-              onClick={handleTrade}
-              disabled={selectedCards.size !== CARDS_PER_PACK || trading}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {trading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Trading...
-                </>
-              ) : (
-                <>
-                  <Package className="w-5 h-5" />
-                  Trade for Pack
-                </>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleTrade}
+                disabled={selectedCards.size !== CARDS_PER_PACK || trading}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {trading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Trading...
+                  </>
+                ) : (
+                  <>
+                    <Package className="w-5 h-5" />
+                    Trade for Pack
+                  </>
+                )}
+              </button>
+              {packsAvailable > 1 && (
+                <button
+                  onClick={handleTradeAll}
+                  disabled={trading}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {trading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Trading...
+                    </>
+                  ) : (
+                    <>
+                      <Package className="w-5 h-5" />
+                      Trade All ({packsAvailable} packs)
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           </div>
 
           {/* Info banner */}
