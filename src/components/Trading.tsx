@@ -7,7 +7,7 @@ import type { TradeOffer, OwnedCard } from '../types/api';
 import { TradingCard } from './TradingCard';
 import type { TradingCard as TradingCardType, CardRarity, PlayerWithStats } from '../types/player';
 
-type TradeTab = 'incoming' | 'outgoing' | 'create';
+type TradeTab = 'incoming' | 'outgoing' | 'create' | 'search';
 type TradeStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
 type SortOption = 'newest' | 'oldest' | 'rarity' | 'rating' | 'name';
 type FilterRarity = CardRarity | 'all';
@@ -66,6 +66,21 @@ export function Trading({ players }: TradingProps) {
   const [theirFranchise, setTheirFranchise] = useState<string>('all');
   const [theirSearch, setTheirSearch] = useState('');
   const [theirPage, setTheirPage] = useState(1);
+
+  // Card search state
+  const [cardSearchQuery, setCardSearchQuery] = useState('');
+  const [cardSearchRarity, setCardSearchRarity] = useState<FilterRarity>('all');
+  const [cardSearchResults, setCardSearchResults] = useState<Array<{
+    discordUserId: string;
+    username: string;
+    avatar: string | null;
+    cardCount: number;
+  }>>([]);
+  const [cardSearchLoading, setCardSearchLoading] = useState(false);
+  const [cardSearchError, setCardSearchError] = useState<string | null>(null);
+  const [cardSearchPage, setCardSearchPage] = useState(1);
+  const [cardSearchPerPage, setCardSearchPerPage] = useState(10);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const CARDS_PER_PAGE = 8;
 
@@ -182,6 +197,29 @@ export function Trading({ players }: TradingProps) {
       setTheirCards(cards.map(apiCardToTradingCard));
     } catch (err) {
       console.error('Failed to fetch their cards:', err);
+    }
+  };
+
+  const handleCardSearch = async () => {
+    if (cardSearchQuery.trim().length < 2) {
+      setCardSearchError('Please enter at least 2 characters');
+      return;
+    }
+
+    setCardSearchLoading(true);
+    setCardSearchError(null);
+    setHasSearched(true);
+    setCardSearchPage(1);
+
+    try {
+      const rarity = cardSearchRarity === 'all' ? undefined : cardSearchRarity;
+      const result = await api.searchCardOwners(cardSearchQuery.trim(), rarity);
+      setCardSearchResults(result.owners);
+    } catch (err) {
+      setCardSearchError(err instanceof Error ? err.message : 'Failed to search');
+      setCardSearchResults([]);
+    } finally {
+      setCardSearchLoading(false);
     }
   };
 
@@ -512,6 +550,17 @@ export function Trading({ players }: TradingProps) {
           }`}
         >
           New Trade
+        </button>
+        <button
+          onClick={() => setActiveTab('search')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'search'
+              ? 'bg-violet-600 text-white'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Search className="w-4 h-4 inline-block mr-1" />
+          Card Search
         </button>
       </div>
 
@@ -884,6 +933,175 @@ export function Trading({ players }: TradingProps) {
                     )}
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'search' && (
+            <div className="space-y-6">
+              {/* Search form */}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 space-y-4">
+                <h3 className="text-white font-medium text-lg">Find Card Owners</h3>
+                <p className="text-white/50 text-sm">Search for users who own cards of a specific player</p>
+                
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="text-white/40 text-sm font-medium block mb-2">Player Name</label>
+                    <input
+                      type="text"
+                      value={cardSearchQuery}
+                      onChange={(e) => setCardSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCardSearch()}
+                      placeholder="Enter player name..."
+                      className="w-full px-4 py-2.5 bg-white/[0.05] border border-white/[0.08] text-white rounded-xl text-sm font-medium placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-white/40 text-sm font-medium block mb-2">Rarity</label>
+                    <select
+                      value={cardSearchRarity}
+                      onChange={(e) => setCardSearchRarity(e.target.value as FilterRarity)}
+                      className="px-4 py-2.5 bg-white/[0.05] border border-white/[0.08] text-white rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    >
+                      <option value="all">All Rarities</option>
+                      <option value="normal">Normal</option>
+                      <option value="foil">Foil</option>
+                      <option value="holo">Holo</option>
+                      <option value="gold">Gold</option>
+                      <option value="prismatic">Prismatic</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleCardSearch}
+                      disabled={cardSearchLoading || cardSearchQuery.trim().length < 2}
+                      className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {cardSearchLoading ? (
+                        <Clock className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                      Search
+                    </button>
+                  </div>
+                </div>
+
+                {cardSearchError && (
+                  <p className="text-red-400 text-sm">{cardSearchError}</p>
+                )}
+              </div>
+
+              {/* Results */}
+              {hasSearched && (
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-white font-medium">
+                      {cardSearchResults.length === 0 
+                        ? 'No results found' 
+                        : `Found ${cardSearchResults.length} user${cardSearchResults.length !== 1 ? 's' : ''}`}
+                    </h3>
+                    
+                    {cardSearchResults.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-white/40 text-sm">Per page:</label>
+                        <select
+                          value={cardSearchPerPage}
+                          onChange={(e) => {
+                            setCardSearchPerPage(Number(e.target.value));
+                            setCardSearchPage(1);
+                          }}
+                          className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none"
+                        >
+                          <option value={5}>5</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {cardSearchResults.length > 0 && (
+                    <>
+                      <div className="divide-y divide-white/[0.06]">
+                        {cardSearchResults
+                          .slice((cardSearchPage - 1) * cardSearchPerPage, cardSearchPage * cardSearchPerPage)
+                          .map((owner) => (
+                            <div
+                              key={owner.discordUserId}
+                              className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                            >
+                              <div className="flex items-center gap-3">
+                                {owner.avatar ? (
+                                  <img
+                                    src={`https://cdn.discordapp.com/avatars/${owner.discordUserId}/${owner.avatar}.png`}
+                                    alt={owner.username}
+                                    className="w-10 h-10 rounded-full bg-white/10"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                                    <User className="w-5 h-5 text-white/50" />
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-white font-medium">{owner.username}</p>
+                                  <p className="text-white/40 text-sm">
+                                    {owner.cardCount} card{owner.cardCount !== 1 ? 's' : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <button
+                                onClick={() => {
+                                  setSelectedUser({
+                                    discordId: owner.discordUserId,
+                                    username: owner.username,
+                                    avatarUrl: owner.avatar 
+                                      ? `https://cdn.discordapp.com/avatars/${owner.discordUserId}/${owner.avatar}.png`
+                                      : null,
+                                  });
+                                  setActiveTab('create');
+                                }}
+                                className="px-4 py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 font-medium rounded-lg text-sm transition-colors"
+                              >
+                                Trade with User
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {Math.ceil(cardSearchResults.length / cardSearchPerPage) > 1 && (
+                        <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/[0.06]">
+                          <button
+                            onClick={() => setCardSearchPage((p) => Math.max(1, p - 1))}
+                            disabled={cardSearchPage <= 1}
+                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                            Previous
+                          </button>
+                          
+                          <span className="text-white/50 text-sm">
+                            Page {cardSearchPage} of {Math.ceil(cardSearchResults.length / cardSearchPerPage)}
+                          </span>
+                          
+                          <button
+                            onClick={() => setCardSearchPage((p) => Math.min(Math.ceil(cardSearchResults.length / cardSearchPerPage), p + 1))}
+                            disabled={cardSearchPage >= Math.ceil(cardSearchResults.length / cardSearchPerPage)}
+                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            Next
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               )}
             </div>
           )}

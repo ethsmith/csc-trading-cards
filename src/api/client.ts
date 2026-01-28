@@ -241,6 +241,23 @@ class ApiClient {
       body: JSON.stringify({ cardIds }),
     });
   }
+
+  // Search for users who own cards matching player name and optional rarity
+  async searchCardOwners(playerName: string, rarity?: string): Promise<{
+    owners: Array<{
+      discordUserId: string;
+      username: string;
+      avatar: string | null;
+      cardCount: number;
+    }>;
+    totalOwners: number;
+  }> {
+    const params = new URLSearchParams({ playerName });
+    if (rarity && rarity !== 'all') {
+      params.append('rarity', rarity);
+    }
+    return this.request(`/collection/search?${params.toString()}`);
+  }
 }
 
 export const api = new ApiClient();
