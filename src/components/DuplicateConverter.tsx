@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Package, Loader2, Check, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
-import { apiCardToTradingCard, OwnedCard } from '../types/api';
+import { apiCardToTradingCard } from '../types/api';
+import type { OwnedCard } from '../types/api';
 import { TradingCard } from './TradingCard';
 
 interface DuplicateConverterProps {
