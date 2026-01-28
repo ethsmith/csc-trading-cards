@@ -7,7 +7,7 @@ import type { TradeOffer, OwnedCard } from '../types/api';
 import { TradingCard } from './TradingCard';
 import type { TradingCard as TradingCardType, CardRarity, PlayerWithStats } from '../types/player';
 
-type TradeTab = 'incoming' | 'outgoing' | 'create' | 'search';
+type TradeTab = 'incoming' | 'outgoing' | 'create' | 'search' | 'history';
 type TradeStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
 type SortOption = 'newest' | 'oldest' | 'rarity' | 'rating' | 'name';
 type FilterRarity = CardRarity | 'all';
@@ -81,6 +81,14 @@ export function Trading({ players }: TradingProps) {
   const [cardSearchPage, setCardSearchPage] = useState(1);
   const [cardSearchPerPage, setCardSearchPerPage] = useState(10);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Trade history state
+  const [historyTrades, setHistoryTrades] = useState<TradeOffer[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPerPage, setHistoryPerPage] = useState(10);
+  const [expandedHistoryTrade, setExpandedHistoryTrade] = useState<string | null>(null);
 
   const CARDS_PER_PAGE = 8;
 
@@ -220,6 +228,36 @@ export function Trading({ players }: TradingProps) {
       setCardSearchResults([]);
     } finally {
       setCardSearchLoading(false);
+    }
+  };
+
+  const fetchTradeHistory = async () => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      // Fetch accepted incoming and outgoing trades
+      const [incomingResult, outgoingResult] = await Promise.all([
+        api.getTradeHistory({ type: 'incoming', status: 'accepted' }),
+        api.getTradeHistory({ type: 'outgoing', status: 'accepted' }),
+      ]);
+      
+      // Combine and sort by updatedAt (most recent first)
+      const allTrades = [...incomingResult.trades, ...outgoingResult.trades];
+      allTrades.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      
+      setHistoryTrades(allTrades);
+      
+      // Fetch usernames for trade participants
+      const userIds = new Set<string>();
+      allTrades.forEach((trade) => {
+        userIds.add(trade.fromUserId);
+        userIds.add(trade.toUserId);
+      });
+      fetchUsernames(Array.from(userIds));
+    } catch (err) {
+      setHistoryError(err instanceof Error ? err.message : 'Failed to load trade history');
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -561,6 +599,20 @@ export function Trading({ players }: TradingProps) {
         >
           <Search className="w-4 h-4 inline-block mr-1" />
           Card Search
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('history');
+            fetchTradeHistory();
+          }}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'history'
+              ? 'bg-violet-600 text-white'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Clock className="w-4 h-4 inline-block mr-1" />
+          History
         </button>
       </div>
 
@@ -1103,6 +1155,170 @@ export function Trading({ players }: TradingProps) {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="space-y-6">
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-white font-medium text-lg">Trade History</h3>
+                    <p className="text-white/50 text-sm">Completed trades you've participated in</p>
+                  </div>
+                  
+                  {historyTrades.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-white/40 text-sm">Per page:</label>
+                      <select
+                        value={historyPerPage}
+                        onChange={(e) => {
+                          setHistoryPerPage(Number(e.target.value));
+                          setHistoryPage(1);
+                        }}
+                        className="bg-white/[0.05] border border-white/[0.08] text-white rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {historyLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Clock className="w-8 h-8 text-white/30 animate-spin" />
+                  </div>
+                ) : historyError ? (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400">
+                    {historyError}
+                  </div>
+                ) : historyTrades.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+                      <ArrowLeftRight className="w-8 h-8 text-white/20" />
+                    </div>
+                    <p className="text-white/40 font-medium">No completed trades yet</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {historyTrades
+                        .slice((historyPage - 1) * historyPerPage, historyPage * historyPerPage)
+                        .map((trade) => {
+                          const isIncoming = trade.toUserId === user?.discordId;
+                          const otherUserId = isIncoming ? trade.fromUserId : trade.toUserId;
+                          const isExpanded = expandedHistoryTrade === trade.id;
+
+                          return (
+                            <div
+                              key={trade.id}
+                              className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden"
+                            >
+                              <button
+                                onClick={() => setExpandedHistoryTrade(isExpanded ? null : trade.id)}
+                                className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                    <Check className="w-5 h-5 text-emerald-400" />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-white font-medium">
+                                      {isIncoming ? 'Received from' : 'Sent to'}: {getDisplayName(otherUserId)}
+                                    </p>
+                                    <p className="text-white/40 text-sm">
+                                      {trade.offeredCards.length} card{trade.offeredCards.length !== 1 ? 's' : ''} ↔ {' '}
+                                      {trade.requestedCards.length} card{trade.requestedCards.length !== 1 ? 's' : ''} •{' '}
+                                      {new Date(trade.updatedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <span className="px-3 py-1 rounded-full text-xs font-medium border text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                                    Completed
+                                  </span>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-5 h-5 text-white/40" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5 text-white/40" />
+                                  )}
+                                </div>
+                              </button>
+
+                              {isExpanded && (
+                                <div className="border-t border-white/[0.06] p-4 space-y-4">
+                                  <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                      <h4 className="text-white/60 text-sm font-medium mb-3">
+                                        {isIncoming ? 'You received' : 'You gave'}
+                                      </h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {trade.offeredCards.map((card) => {
+                                          const tradingCard = apiCardToTradingCard(card);
+                                          return (
+                                            <div key={card.id} className="w-24">
+                                              <TradingCard card={tradingCard} />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-white/60 text-sm font-medium mb-3">
+                                        {isIncoming ? 'You gave' : 'You received'}
+                                      </h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {trade.requestedCards.map((card) => {
+                                          const tradingCard = apiCardToTradingCard(card);
+                                          return (
+                                            <div key={card.id} className="w-24">
+                                              <TradingCard card={tradingCard} />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {/* Pagination */}
+                    {Math.ceil(historyTrades.length / historyPerPage) > 1 && (
+                      <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/[0.06] mt-4">
+                        <button
+                          onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                          disabled={historyPage <= 1}
+                          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          Previous
+                        </button>
+                        
+                        <span className="text-white/50 text-sm">
+                          Page {historyPage} of {Math.ceil(historyTrades.length / historyPerPage)}
+                        </span>
+                        
+                        <button
+                          onClick={() => setHistoryPage((p) => Math.min(Math.ceil(historyTrades.length / historyPerPage), p + 1))}
+                          disabled={historyPage >= Math.ceil(historyTrades.length / historyPerPage)}
+                          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          Next
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
         </>

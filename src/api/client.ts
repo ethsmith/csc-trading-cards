@@ -1,3 +1,6 @@
+import type { OwnedCard, TradeOffer } from '../types/api';
+import type { PlayerWithStats, CardRarity } from '../types/player';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 class ApiClient {
@@ -63,11 +66,11 @@ class ApiClient {
     return this.request('/auth/me');
   }
 
-  async getPlayers(): Promise<{ players: any[] }> {
+  async getPlayers(): Promise<{ players: PlayerWithStats[] }> {
     return this.request('/players');
   }
 
-  async getCollection(): Promise<{ cards: any[] }> {
+  async getCollection(): Promise<{ cards: OwnedCard[] }> {
     return this.request('/collection');
   }
 
@@ -84,7 +87,7 @@ class ApiClient {
   }
 
   async openPack(packSize: number = 5): Promise<{
-    cards: any[];
+    cards: OwnedCard[];
     newSnapshots: number;
     packBalance: number;
     message: string;
@@ -110,7 +113,7 @@ class ApiClient {
     code: string;
     packCount: number;
     cardsPerPack: number;
-    guaranteedRarities: any;
+    guaranteedRarities: Record<CardRarity, number> | null;
     isRedeemed: boolean;
     isExpired: boolean;
     expiresAt: string | null;
@@ -118,23 +121,23 @@ class ApiClient {
     return this.request(`/codes/${code}`);
   }
 
-  async searchUsers(query: string): Promise<{ users: any[] }> {
+  async searchUsers(query: string): Promise<{ users: Array<{ discordId: string; username: string; avatarUrl: string | null }> }> {
     return this.request(`/users/search?q=${encodeURIComponent(query)}`);
   }
 
-  async getUserProfile(discordId: string): Promise<any> {
+  async getUserProfile(discordId: string): Promise<{ discordId: string; username: string; avatar: string | null }> {
     return this.request(`/users/${discordId}`);
   }
 
-  async getUserCollection(discordId: string): Promise<{ cards: any[]; isOwnCollection: boolean }> {
+  async getUserCollection(discordId: string): Promise<{ cards: OwnedCard[]; isOwnCollection: boolean }> {
     return this.request(`/collection/user/${discordId}`);
   }
 
-  async getTrades(type: 'incoming' | 'outgoing' | 'all' = 'all'): Promise<{ trades: any[] }> {
+  async getTrades(type: 'incoming' | 'outgoing' | 'all' = 'all'): Promise<{ trades: TradeOffer[] }> {
     return this.request(`/trades?type=${type}`);
   }
 
-  async getPendingTrades(): Promise<{ trades: any[] }> {
+  async getPendingTrades(): Promise<{ trades: TradeOffer[] }> {
     return this.request('/trades/pending');
   }
 
@@ -142,22 +145,22 @@ class ApiClient {
     toUserId: string,
     offeredCardIds: string[],
     requestedCardIds: string[]
-  ): Promise<any> {
+  ): Promise<{ trade: TradeOffer }> {
     return this.request('/trades', {
       method: 'POST',
       body: JSON.stringify({ toUserId, offeredCardIds, requestedCardIds }),
     });
   }
 
-  async acceptTrade(tradeId: string): Promise<any> {
+  async acceptTrade(tradeId: string): Promise<{ message: string }> {
     return this.request(`/trades/${tradeId}/accept`, { method: 'POST' });
   }
 
-  async rejectTrade(tradeId: string): Promise<any> {
+  async rejectTrade(tradeId: string): Promise<{ message: string }> {
     return this.request(`/trades/${tradeId}/reject`, { method: 'POST' });
   }
 
-  async cancelTrade(tradeId: string): Promise<any> {
+  async cancelTrade(tradeId: string): Promise<{ message: string }> {
     return this.request(`/trades/${tradeId}/cancel`, { method: 'POST' });
   }
 
@@ -166,7 +169,7 @@ class ApiClient {
     cardsPerPack?: number;
     guaranteedRarities?: Record<string, number>;
     expiresInDays?: number;
-  } = {}): Promise<any> {
+  } = {}): Promise<{ code: string; packCount: number }> {
     return this.request('/codes/generate', {
       method: 'POST',
       body: JSON.stringify(options),
@@ -257,6 +260,22 @@ class ApiClient {
       params.append('rarity', rarity);
     }
     return this.request(`/collection/search?${params.toString()}`);
+  }
+
+  // Trade history endpoint
+  async getTradeHistory(options?: {
+    type?: 'incoming' | 'outgoing';
+    status?: 'accepted' | 'rejected' | 'cancelled';
+  }): Promise<{ trades: TradeOffer[] }> {
+    const params = new URLSearchParams();
+    if (options?.type) {
+      params.append('type', options.type);
+    }
+    if (options?.status) {
+      params.append('status', options.status);
+    }
+    const queryString = params.toString();
+    return this.request(`/trades/history${queryString ? `?${queryString}` : ''}`);
   }
 }
 
