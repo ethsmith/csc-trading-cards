@@ -1256,30 +1256,34 @@ export function Trading({ players }: TradingProps) {
                                       <h4 className="text-white/60 text-sm font-medium mb-3">
                                         {isIncoming ? 'You received' : 'You gave'}
                                       </h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {trade.offeredCards.map((card) => {
-                                          const tradingCard = apiCardToTradingCard(card);
-                                          return (
-                                            <div key={card.id} className="w-24">
-                                              <TradingCard card={tradingCard} />
-                                            </div>
-                                          );
-                                        })}
+                                      <div className="overflow-x-auto pb-4">
+                                        <div className="flex gap-6 min-w-min py-4 px-2">
+                                          {trade.offeredCards.map((card) => {
+                                            const tradingCard = apiCardToTradingCard(card);
+                                            return (
+                                              <div key={card.id} className="w-32 flex-shrink-0 relative hover:z-50">
+                                                <TradingCard card={tradingCard} />
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
                                       </div>
                                     </div>
                                     <div>
                                       <h4 className="text-white/60 text-sm font-medium mb-3">
                                         {isIncoming ? 'You gave' : 'You received'}
                                       </h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {trade.requestedCards.map((card) => {
-                                          const tradingCard = apiCardToTradingCard(card);
-                                          return (
-                                            <div key={card.id} className="w-24">
-                                              <TradingCard card={tradingCard} />
-                                            </div>
-                                          );
-                                        })}
+                                      <div className="overflow-x-auto pb-4">
+                                        <div className="flex gap-6 min-w-min py-4 px-2">
+                                          {trade.requestedCards.map((card) => {
+                                            const tradingCard = apiCardToTradingCard(card);
+                                            return (
+                                              <div key={card.id} className="w-32 flex-shrink-0 relative hover:z-50">
+                                                <TradingCard card={tradingCard} />
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
