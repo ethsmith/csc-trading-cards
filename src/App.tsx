@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Package, Library, Loader2, Eye, LogIn, LogOut, Gift, User, ArrowLeftRight } from 'lucide-react';
+import { Package, Library, Loader2, Eye, LogIn, LogOut, Gift, User, ArrowLeftRight, FileText } from 'lucide-react';
 import { PackOpening } from './components/PackOpening';
 import { Collection } from './components/Collection';
 import { ExampleCards } from './components/ExampleCards';
 import { Trading } from './components/Trading';
 import { Gifts } from './components/Gifts';
+import { ChangelogModal, type Changelog } from './components/ChangelogModal';
+import { ChangelogList } from './components/ChangelogList';
 import { useAuth } from './context/AuthContext';
 import { api } from './api/client';
 import { apiCardToTradingCard } from './types/api';
 import type { PlayerWithStats, TradingCard } from './types/player';
 
-type Tab = 'packs' | 'collection' | 'trading' | 'gifts' | 'examples';
+type Tab = 'packs' | 'collection' | 'trading' | 'gifts' | 'examples' | 'changelog';
 
 function App() {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
@@ -21,6 +23,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [pendingGiftsCount, setPendingGiftsCount] = useState(0);
   const [pendingTradesCount, setPendingTradesCount] = useState(0);
+  const [showChangelogPopup, setShowChangelogPopup] = useState(false);
+  const [latestChangelog, setLatestChangelog] = useState<Changelog | null>(null);
+  const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
 
   const fetchCollection = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -65,6 +70,31 @@ function App() {
       setPendingTradesCount(0);
     }
   }, [isAuthenticated, fetchCollection]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      api.getChangelogs()
+        .then(({ changelogs, unreadCount }) => {
+          if (unreadCount > 0) {
+            const firstUnread = changelogs.find(c => !c.isRead);
+            if (firstUnread) {
+              setLatestChangelog(firstUnread);
+              setShowChangelogPopup(true);
+            }
+            setHasUnreadChangelog(true);
+          }
+        })
+        .catch((err) => console.error('Failed to fetch changelogs:', err));
+    }
+  }, [isAuthenticated]);
+
+  const handleMarkChangelogRead = useCallback(() => {
+    if (latestChangelog) {
+      api.markChangelogRead(latestChangelog.id)
+        .then(() => setHasUnreadChangelog(false))
+        .catch((err) => console.error('Failed to mark changelog read:', err));
+    }
+  }, [latestChangelog]);
 
   const handleCardsObtained = (newCards: TradingCard[]) => {
     setCollection((prev) => [...newCards, ...prev]);
@@ -192,6 +222,16 @@ function App() {
                     )}
                     <span className="text-white/70 text-sm font-medium">{user.username}</span>
                   </div>
+                  <button
+                    onClick={() => setActiveTab('changelog')}
+                    className="relative flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+                    title="What's New"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {hasUnreadChangelog && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-violet-500 rounded-full" />
+                    )}
+                  </button>
                   <button
                     onClick={logout}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
@@ -334,9 +374,27 @@ function App() {
             {activeTab === 'examples' && (
               <ExampleCards players={players} />
             )}
+
+            {activeTab === 'changelog' && (
+              <ChangelogList onBack={() => setActiveTab('packs')} />
+            )}
           </>
         )}
       </main>
+
+      {/* Changelog popup modal */}
+      {showChangelogPopup && latestChangelog && (
+        <ChangelogModal
+          changelog={latestChangelog}
+          onClose={() => setShowChangelogPopup(false)}
+          onMarkRead={handleMarkChangelogRead}
+          showAllButton
+          onViewAll={() => {
+            setShowChangelogPopup(false);
+            setActiveTab('changelog');
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="bg-black/40 border-t border-white/[0.04] py-5 mt-auto">

@@ -202,6 +202,34 @@ class ApiClient {
   }> {
     return this.request('/gifts/claim-all', { method: 'POST' });
   }
+
+  // Changelog endpoints
+  async getChangelogs(): Promise<{
+    changelogs: Array<{
+      id: string;
+      version: string | null;
+      title: string;
+      content: string;
+      createdAt: string;
+      isRead: boolean;
+      readAt: string | null;
+    }>;
+    unreadCount: number;
+  }> {
+    return this.request('/changelogs');
+  }
+
+  async getUnreadChangelogsCount(): Promise<{ unreadCount: number }> {
+    return this.request('/changelogs/unread-count');
+  }
+
+  async markChangelogRead(changelogId: string): Promise<{ message: string; markedAsRead: boolean }> {
+    return this.request(`/changelogs/${changelogId}/read`, { method: 'POST' });
+  }
+
+  async markAllChangelogsRead(): Promise<{ message: string; markedCount: number }> {
+    return this.request('/changelogs/read-all', { method: 'POST' });
+  }
 }
 
 export const api = new ApiClient();
