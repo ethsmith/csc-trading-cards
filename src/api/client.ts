@@ -230,6 +230,17 @@ class ApiClient {
   async markAllChangelogsRead(): Promise<{ message: string; markedCount: number }> {
     return this.request('/changelogs/read-all', { method: 'POST' });
   }
+
+  // Duplicate cards trade-in endpoint
+  async tradeDuplicates(cardIds: string[]): Promise<{
+    message: string;
+    packBalance: number;
+  }> {
+    return this.request('/packs/trade-in', {
+      method: 'POST',
+      body: JSON.stringify({ cardIds }),
+    });
+  }
 }
 
 export const api = new ApiClient();

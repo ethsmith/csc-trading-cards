@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Library, Filter, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Library, Filter, X, ChevronLeft, ChevronRight, Search, RefreshCw } from 'lucide-react';
 import type { TradingCard as TradingCardType, CardRarity } from '../types/player';
 import { RARITY_TEXT_COLORS } from '../types/player';
 import { TradingCard } from './TradingCard';
+import { DuplicateConverter } from './DuplicateConverter';
 
 function getCollectionStats(cards: TradingCardType[]) {
   const byRarity: Record<CardRarity, number> = {
@@ -29,6 +30,8 @@ function getCollectionStats(cards: TradingCardType[]) {
 
 interface CollectionProps {
   cards: TradingCardType[];
+  onCardsObtained?: (cards: TradingCardType[]) => void;
+  onPackBalanceChange?: (newBalance: number) => void;
 }
 
 type SortOption = 'newest' | 'oldest' | 'rarity' | 'rating' | 'name';
@@ -42,13 +45,14 @@ const RARITY_ORDER: Record<CardRarity, number> = {
   normal: 1,
 };
 
-export function Collection({ cards }: CollectionProps) {
+export function Collection({ cards, onPackBalanceChange }: CollectionProps) {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterRarity, setFilterRarity] = useState<FilterRarity>('all');
   const [filterTier, setFilterTier] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [showDuplicateConverter, setShowDuplicateConverter] = useState(false);
 
   const stats = getCollectionStats(cards);
 
@@ -87,6 +91,15 @@ export function Collection({ cards }: CollectionProps) {
     setCurrentPage(1);
   };
 
+  if (showDuplicateConverter) {
+    return (
+      <DuplicateConverter
+        onBack={() => setShowDuplicateConverter(false)}
+        onPackBalanceChange={onPackBalanceChange}
+      />
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header with stats */}
@@ -101,7 +114,14 @@ export function Collection({ cards }: CollectionProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button
+            onClick={() => setShowDuplicateConverter(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-medium text-sm transition-all"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Convert Dupes
+          </button>
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5">
             <span className="text-white/50">Unique:</span>{' '}
             <span className="text-white font-semibold">{stats.uniquePlayers}</span>
