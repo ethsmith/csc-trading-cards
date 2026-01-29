@@ -642,7 +642,34 @@ export function Trading({ players }: TradingProps) {
                   <p className="text-white/40 font-medium">No incoming trade offers</p>
                 </div>
               ) : (
-                incomingTrades.map((trade) => renderTrade(trade, true))
+                <>
+                  {incomingTrades.length > 1 && (
+                    <div className="flex justify-end">
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Are you sure you want to decline all ${incomingTrades.length} incoming trades?`)) return;
+                          setActionLoading('decline-all');
+                          try {
+                            for (const trade of incomingTrades) {
+                              await api.rejectTrade(trade.id);
+                            }
+                            await fetchTrades();
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Failed to decline trades');
+                          } finally {
+                            setActionLoading(null);
+                          }
+                        }}
+                        disabled={actionLoading === 'decline-all'}
+                        className="flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4" />
+                        {actionLoading === 'decline-all' ? 'Declining...' : `Decline All (${incomingTrades.length})`}
+                      </button>
+                    </div>
+                  )}
+                  {incomingTrades.map((trade) => renderTrade(trade, true))}
+                </>
               )}
             </div>
           )}
